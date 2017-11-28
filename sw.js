@@ -37,7 +37,7 @@
 /* eslint-disable indent, no-unused-vars, no-multiple-empty-lines, max-nested-callbacks, space-before-function-paren, quotes, comma-spacing */
 'use strict';
 
-var precacheConfig = [["control.html","7bd55d9d9ece0ff3910360de044db142"],["customMethods.js","1c7f2151dd989f3897f6dd785ac83d1b"],["datatable.html","b2d9f4033ad84f4d5219ff3a375bd516"],["default.css","bea7f6760af3eb932611c174ebed922a"],["graph.html","fe1ab77ceaa96cd2001eebfb4165aa43"],["kwcontrol.js","44051c340d3c31d4d7b0e00b6a8ea0fb"],["kwdatatable.js","cbbd43873b04f4c0fa60e062199fed8b"]];
+var precacheConfig = [["control.html","a0dc3b69124814626b0b61f073abb9f3"],["customMethods.js","1c7f2151dd989f3897f6dd785ac83d1b"],["datatable.html","2b18476fb3ed52576fc238fa6ac97eb4"],["default.css","bea7f6760af3eb932611c174ebed922a"],["graph.html","456278c2c26c52b944d0441cc5670d56"],["kwcontrol.js","42a6d4973a2520d93eaa485d5128c53d"],["kwdatatable.js","543092e6a74065e8bf5f5de7e454205c"],["kwgraph.js","9a233255c930962695d63abf40b01d45"],["kwprofile.js","ca9027b7a343bd1f9197a4977094f3b6"],["kwreport.js","2453a1d43a2b9bfbbd219fb1175c8aa3"],["main.js","13785943737e50ea8bb7d6bfb100cc67"],["profile.html","12c72982a583594f9e7b4b4b25cc82df"],["report.html","79623795bfbf2e927792aa717fa8c13e"],["testAPI.html","08fb8610a789b405a06a2e76d0ab1a9d"],["testAPI.js","ac5c34293b1116247a682e1f58724661"]];
 var cacheName = 'sw-precache-v3--' + (self.registration ? self.registration.scope : '');
 
 

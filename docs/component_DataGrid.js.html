@@ -47,21 +47,22 @@ const defaultColumnHeight = {
 };
 
 
-function createDataGrid(selection, tbl) {
+function createDataGrid(selection, data) {
   // Header
-  if (!selection.select('div.dg-header').size()) {
-    selection.append('div').classed('dg-header', true);
+  if (selection.select('div.dg-header').size()) {
+    selection.select('div.dg-header').remove();
   }
+  selection.append('div').classed('dg-header', true);
   // Body
-  if (!selection.select('div.dg-viewport').size()) {
-    selection.append('div').classed('dg-viewport', true)
-      .append('div').classed('dg-body', true);
+  if (selection.select('div.dg-viewport').size()) {
+    selection.select('div.dg-viewport').remove();
   }
-  const cols = tbl.columns
-    .filter(e => !e.hasOwnProperty('visible') || e.visible !== false)
+  selection.append('div').classed('dg-viewport', true)
+    .append('div').classed('dg-body', true);
+  const cols = data.fields.filter(e => e.visible)
     .map(e => {
-      e.width = defaultColumnWidth[e.sort || 'numeric'];
-      e.height = defaultColumnHeight[e.sort || 'numeric'];
+      e.width = defaultColumnWidth[e.sortType];
+      e.height = defaultColumnHeight[e.sortType];
       return e;
     });
   const rowSize = {
@@ -70,15 +71,16 @@ function createDataGrid(selection, tbl) {
   };
   selection.style('width', `${rowSize.width}px`);
   selection.select('.dg-header').datum(rowSize);
-  const header = selection.select('.dg-header').selectAll('.dg-hcell')
-    .data(cols, d => d.key);
+  const header = selection.select('.dg-header')
+    .selectAll('.dg-hcell')
+      .data(cols, d => d.key);
   header.exit().remove();
   header.enter().append('div')
       .classed('dg-hcell', true)
       .style('display', 'inline-block')
     .merge(header)
       .style('width', d => `${d.width}px`)
-      .text(d => d.hasOwnProperty('name') ? d.name : d.key);
+      .text(d => d.name);
 }
 
 
@@ -104,33 +106,32 @@ function updateRows(selection, rcds, keyFunc, position, visibleRows) {
       .classed('align-middle', true)
       .style('display', 'inline-block')
       .style('width', d => `${d}px`);
+  // TODO: need refactoring
   rowEntered.merge(rowSelection)
-    .order()
-    .each(function(d, ri) {
-      const rowPos = (position + ri) * rSize.height;
-      d3.select(this)
-        .style('transform', `translate(0px, ${rowPos}px)`)
-        .classed('odd', (position + ri) % 2 === 0)
-      .selectAll('.dg-cell')
-        .html(function(_, i) {
-          d3.select(this).attr('id', `c${ri}-${i}`);
-          const value = d[cData[i].key];
-          if (value === undefined) return '';
-          if (cData[i].valueType === 'plot') return '';
-          if (cData[i].valueType === 'image') {  // data URI
-            return `&lt;img src="${value}" width="180" height="180"/>`;
-          }
-          if (cData[i].hasOwnProperty('digit') &amp;&amp; cData[i].digit !== 'raw') {
-            return fmt.formatNum(value, cData[i].digit);
-          }
-          return value;
-        })
-        .each(function(_, i) {
-          if (cData[i].valueType !== 'plot') return;
-          if (!d.hasOwnProperty(cData[i].key)) return;
-          const value = d[cData[i].key];
-          img.showPlot(value, `#c${ri}-${i}`);
-        });
+      .order()
+      .each(function(d, ri) {
+        const rowPos = (position + ri) * rSize.height;
+        d3.select(this)
+          .style('transform', `translate(0px, ${rowPos}px)`)
+          .classed('odd', (position + ri) % 2 === 0)
+        .selectAll('.dg-cell')
+          .html(function(_, i) {
+            d3.select(this).attr('id', `c${ri}-${i}`);
+            const value = d[cData[i].key];
+            if (value === undefined) return '';
+            if (cData[i].valueType === 'plot') return '';
+            if (cData[i].valueType === 'image') {  // data URI
+              return `&lt;img src="${value}" width="180" height="180"/>`;
+            }
+            if (cData[i].digit !== 'raw') return fmt.formatNum(value, cData[i].digit);
+            return value;
+          })
+          .each(function(_, i) {
+            if (cData[i].valueType !== 'plot') return;
+            if (!d.hasOwnProperty(cData[i].key)) return;
+            const value = d[cData[i].key];
+            img.showPlot(value, `#c${ri}-${i}`);
+          });
     });
 }
 
@@ -171,7 +172,7 @@ function dataGridRecords(selection, rcds, keyFunc) {
 
 function addSort(selection, rcds, keyFunc) {
   selection.select('.dg-header').selectAll('.dg-hcell')
-    .filter(d => d.sort !== 'none')
+    .filter(d => d.sortType !== 'none')
     .append('span').append('a')
       .attr('id', d => `sort-${d.key}`)
       .text('^v')
@@ -181,7 +182,7 @@ function addSort(selection, rcds, keyFunc) {
     .on('click', d => {
       const isAsc = d3.select(`#sort-${d.key}`).text() === 'v';
       d3.select(`#sort-${d.key}`).text(isAsc ? '^' : 'v');
-      const isNum = !d.hasOwnProperty('sort') || d.sort === 'numeric';
+      const isNum = d.sortType === 'numeric';
       const cmp = isAsc
         ? (isNum ? fmt.numericAsc : fmt.textAsc)
         : (isNum ? fmt.numericDesc : fmt.textDesc);
@@ -204,13 +205,13 @@ export default {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-component_Component.html">component/Component</a></li><li><a href="module-component_DataGrid.html">component/DataGrid</a></li><li><a href="module-component_Dialog.html">component/Dialog</a></li><li><a href="module-component_Header.html">component/Header</a></li><li><a href="module-datatable.html">datatable</a></li><li><a href="module-fetcher_Fetcher.html">fetcher/Fetcher</a></li><li><a href="module-graph.html">graph</a></li><li><a href="module-graph_GraphForce.html">graph/GraphForce</a></li><li><a href="module-helper_d3Form.html">helper/d3Form</a></li><li><a href="module-helper_d3Scale.html">helper/d3Scale</a></li><li><a href="module-helper_dataStructure.html">helper/dataStructure</a></li><li><a href="module-helper_definition.html">helper/definition</a></li><li><a href="module-helper_file.html">helper/file</a></li><li><a href="module-helper_formatValue.html">helper/formatValue</a></li><li><a href="module-helper_image.html">helper/image</a></li><li><a href="module-helper_parser.html">helper/parser</a></li></ul><h3>Classes</h3><ul><li><a href="module-fetcher_Fetcher-Fetcher.html">Fetcher</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-component_Component.html">component/Component</a></li><li><a href="module-component_DataGrid.html">component/DataGrid</a></li><li><a href="module-component_Dialog.html">component/Dialog</a></li><li><a href="module-component_Header.html">component/Header</a></li><li><a href="module-datatable.html">datatable</a></li><li><a href="module-graph.html">graph</a></li><li><a href="module-graph_GraphForce.html">graph/GraphForce</a></li><li><a href="module-helper_d3Form.html">helper/d3Form</a></li><li><a href="module-helper_d3Scale.html">helper/d3Scale</a></li><li><a href="module-helper_dataStructure.html">helper/dataStructure</a></li><li><a href="module-helper_definition.html">helper/definition</a></li><li><a href="module-helper_file.html">helper/file</a></li><li><a href="module-helper_formatValue.html">helper/formatValue</a></li><li><a href="module-helper_image.html">helper/image</a></li><li><a href="module-helper_parser.html">helper/parser</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.3</a> on Fri Sep 01 2017 11:04:03 GMT+0900 (JST)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.3</a> on Tue Nov 28 2017 13:12:24 GMT+0900 (JST)
 </footer>
 
 <script> prettyPrint(); </script>

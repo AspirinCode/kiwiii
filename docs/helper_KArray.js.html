@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Module: helper/file</title>
+    <title>JSDoc: Source: helper/KArray.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,52 +17,67 @@
 
 <div id="main">
 
-    <h1 class="page-title">Module: helper/file</h1>
+    <h1 class="page-title">Source: helper/KArray.js</h1>
 
     
 
 
 
-
-<section>
-
-<header>
     
-        
-    
-</header>
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>
 
-<article>
-    <div class="container-overview">
-    
-        
+class KArray extends Array {
+  /**
+   * Return array of object filtered by given unique key
+   */
+  unique(key) {
+    return this.reduce((a, b) => {
+      if (a.find(e => e[key] === b[key]) === undefined) a.push(b);
+      return a;
+    }, new KArray());
+  }
 
-        
-    
-    </div>
 
-    
+  /**
+   * Merge arrays
+   */
+  extend() {
+    return this.reduce((a, b) => {
+      Array.prototype.push.apply(a, b);
+      return a;
+    }, new KArray());
+  }
 
-    
 
-    
+  // Merge arrays(Asynchronous)
+  extendAsync() {
+    return Promise.all(this).then(res => {
+      return res.reduce((a, b) => {
+        Array.prototype.push.apply(a, b);
+        return a;
+      }, new KArray());
+    });
+  }
 
-    
+  toArray() {
+    return new Array(this);
+  }
 
-    
+  toObject() {
+    const obj = {};
+    this.forEach(kv => {
+      obj[kv[0]] = kv[1];
+    });
+    return obj;
+  }
+}
 
-    
-
-    
-
-    
-
-    
-
-    
-</article>
-
-</section>
+export default KArray;
+</code></pre>
+        </article>
+    </section>
 
 
 
