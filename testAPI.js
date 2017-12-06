@@ -1,13 +1,42 @@
-// https://github.com/mojaie/kiwiii Version 0.8.0. Copyright 2017 Seiji Matsuoka.
+// https://github.com/mojaie/kiwiii Version 0.8.1. Copyright 2017 Seiji Matsuoka.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(require('d3')) :
 	typeof define === 'function' && define.amd ? define(['d3'], factory) :
 	(factory(global.d3));
 }(this, (function (d3) { 'use strict';
 
-const debug = true;
-
 d3 = d3 && d3.hasOwnProperty('default') ? d3['default'] : d3;
+
+/** @module helper/definition */
+
+
+function defaultFieldProperties(fields) {
+  return fields.map(e => {
+    if (!e.hasOwnProperty('name')) e.name = e.key;
+    if (!e.hasOwnProperty('visible')) e.visible = true;
+    if (e.hasOwnProperty('d3_format')) e.format = 'd3_format';
+    if (!e.hasOwnProperty('format')) e.format = 'raw';
+    return e;
+  });
+}
+
+
+function sortType(fmt) {
+  if (fmt === 'd3_format') return 'numeric';
+  if (fmt === 'numeric') return 'numeric';
+  if (fmt === 'text') return 'text';
+  return 'none';
+}
+
+
+function ongoing(data) {
+  return ['running', 'ready'].includes(data.status);
+}
+
+
+var def = {
+  defaultFieldProperties, sortType, ongoing
+};
 
 /** @module helper/formatValue */
 
@@ -16,15 +45,9 @@ d3 = d3 && d3.hasOwnProperty('default') ? d3['default'] : d3;
  * @param {object} value - value
  * @param {string} type - si | scientific | rounded | raw
  */
-function formatNum(value, type) {
-  const conv = {
-    scientific: ".3e",
-    si: ".3s",
-    rounded: ".3r"
-  };
-  if (type === 'raw') return value;
+function formatNum(value, d3format) {
   if (value === undefined || value === null || Number.isNaN(value)) return '';
-  return value == parseFloat(value) ? d3.format(conv[type])(value) : value;
+  return value == parseFloat(value) ? d3.format(d3format)(value) : value;
 }
 
 function partialMatch(query, target) {
@@ -154,15 +177,17 @@ function updateTableRecords(selection, rcds, keyFunc) {
       .classed('align-middle', true)
     .html(function (d, i) {
       if (d === undefined) return '';
-      if (header[i].valueType === 'plot') return '[plot]';
-      if (header[i].valueType === 'image') return '[image]';
-      if (header[i].valueType === 'control') return;
-      if (header[i].digit !== 'raw') return fmt.formatNum(d, header[i].digit);
+      if (header[i].format === 'd3_format') {
+        return fmt.formatNum(d, header[i].d3_format);
+      }
+      if (header[i].format === 'plot') return '[plot]';
+      if (header[i].format === 'image') return '[image]';
+      if (header[i].format === 'control') return;
       return d;
     })
     .each((d, i, nodes) => {
       // This should be called after html
-      if (header[i].valueType === 'control') d3.select(nodes[i]).call(d);
+      if (header[i].format === 'control') d3.select(nodes[i]).call(d);
     });
 }
 
@@ -176,7 +201,7 @@ function appendTableRows(selection, rcds, keyFunc) {
 
 function addSort(selection) {
   selection.select('thead tr').selectAll('th')
-    .filter(d => d.sortType !== 'none')
+    .filter(d => def.sortType(d.format) !== 'none')
     .append('span').append('a')
       .attr('id', d => `sort-${d.key}`)
       .text('^v')
@@ -185,7 +210,7 @@ function addSort(selection) {
       .style('text-align', 'center')
     .on('click', d => {
       const isAsc = d3.select(`#sort-${d.key}`).text() === 'v';
-      const isNum = d.sortType === 'numeric';
+      const isNum = def.sortType(d.format) === 'numeric';
       const cmp = isAsc
         ? (isNum ? fmt.numericAsc : fmt.textAsc)
         : (isNum ? fmt.numericDesc : fmt.textDesc);
@@ -214,77 +239,6 @@ var cmp = {
   selectOptions, checkboxList, checkboxListT,
   createTable, updateTableRecords,
   appendTableRows, addSort, formatNumbers
-};
-
-/** @module helper/definition */
-
-
-const defaultHiddenFields = ['_mw', '_mw_wo_sw', '_logp', '_formula', '_nonH'];
-
-// TODO: timestamp sort
-const defaultSort = {
-    id: 'text',
-    compound_id: 'text',
-    assay_id: 'text',
-    svg: 'none',
-    json: 'none',
-    plot: 'none',
-    text: 'text',
-    ec50: 'numeric',
-    'active%': 'numeric',
-    'inhibition%': 'numeric',
-    filesize: 'numeric',
-    numeric: 'numeric',
-    count: 'numeric',
-    int: 'numeric',
-    flag: 'numeric',
-    bool: 'numeric',
-    timestamp: 'none',
-    image: 'none',
-    control: 'none',
-    'undefined': 'none'
-};
-
-const defaultDigit = {
-    id: 'raw',
-    compound_id: 'raw',
-    assay_id: 'raw',
-    svg: 'raw',
-    json: 'raw',
-    plot: 'raw',
-    text: 'raw',
-    ec50: 'scientific',
-    'active%': 'rounded',
-    'inhibition%': 'rounded',
-    filesize: 'si',
-    numeric: 'rounded',
-    count: 'raw',
-    int: 'raw',
-    flag: 'raw',
-    bool: 'raw',
-    timestamp: 'raw',
-    image: 'raw',
-    control: 'raw',
-    'undefined': 'raw'
-};
-
-function defaultFieldProperties(fields) {
-  return fields.map(e => {
-    if (!e.hasOwnProperty('name')) e.name = e.key;
-    if (!e.hasOwnProperty('visible')) e.visible = !defaultHiddenFields.includes(e.key);
-    if (!e.hasOwnProperty('sortType')) e.sortType = defaultSort[e.valueType];
-    if (!e.hasOwnProperty('digit')) e.digit = defaultDigit[e.valueType];
-    return e;
-  });
-}
-
-function ongoing(data) {
-  return ['running', 'ready'].includes(data.status);
-}
-
-
-var def = {
-  defaultHiddenFields, defaultFieldProperties, ongoing
 };
 
 const baseURL = '';
@@ -384,7 +338,7 @@ testCases.push(() =>
 testCases.push(() =>
   fetcher.get('run', {
     type: 'profile',
-    compoundID: 'DB00189'
+    compound_id: 'DB00189'
   }).then(fetcher.json)
     .then(res => ({output: res, test: 'profile', pass: true}))
     .catch(err => ({output: err, test: 'profile', pass: false}))
@@ -450,7 +404,7 @@ testCases.push(() =>
   fetcher.get('run', {
     type: 'chemsearch',
     targets: ['drugbankfda'],
-    key: 'id',
+    key: 'compound_id',
     values: ['DB00186', 'DB00189', 'DB00193', 'DB00203', 'DB00764', 'DB00863',
              'DB00865', 'DB00868', 'DB01143', 'DB01240', 'DB01242', 'DB01361',
              'DB01366', 'DB02638', 'DB02959']
@@ -480,8 +434,8 @@ testCases.push(() =>
 function run() {
   const tbl = {
       fields: def.defaultFieldProperties([
-        {key: 'test', valueType: 'text'},
-        {key: 'result', valueType: 'text'}
+        {key: 'test'},
+        {key: 'result'}
       ]),
       records: []
   };

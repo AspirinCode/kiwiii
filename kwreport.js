@@ -1,11 +1,9 @@
-// https://github.com/mojaie/kiwiii Version 0.8.0. Copyright 2017 Seiji Matsuoka.
+// https://github.com/mojaie/kiwiii Version 0.8.1. Copyright 2017 Seiji Matsuoka.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('d3'), require('pako'), require('Dexie'), require('vega')) :
 	typeof define === 'function' && define.amd ? define(['d3', 'pako', 'Dexie', 'vega'], factory) :
 	(global.kwreport = factory(global.d3,global.pako,global.Dexie,global.vega));
 }(this, (function (d3,pako,Dexie,vega) { 'use strict';
-
-const debug = true;
 
 d3 = d3 && d3.hasOwnProperty('default') ? d3['default'] : d3;
 pako = pako && pako.hasOwnProperty('default') ? pako['default'] : pako;
@@ -39,6 +37,11 @@ function firstFile(selector) {
 }
 
 
+function inputValues(selector) {
+  return d3.selectAll(selector).selectAll('input').nodes().map(e => e.value);
+}
+
+
 function checkboxValues(selector) {
   return d3.selectAll(selector).selectAll('input:checked').nodes().map(e => e.value);
 }
@@ -67,71 +70,31 @@ function checkboxData(selector) {
 
 var d3form = {
   value, valueInt, valueFloat, checked,
-  firstFile, checkboxValues, optionValues, textareaLines,
+  firstFile, inputValues, checkboxValues, optionValues, textareaLines,
   optionData, checkboxData
 };
 
 /** @module helper/definition */
 
 
-const defaultHiddenFields = ['_mw', '_mw_wo_sw', '_logp', '_formula', '_nonH'];
-
-// TODO: timestamp sort
-const defaultSort = {
-    id: 'text',
-    compound_id: 'text',
-    assay_id: 'text',
-    svg: 'none',
-    json: 'none',
-    plot: 'none',
-    text: 'text',
-    ec50: 'numeric',
-    'active%': 'numeric',
-    'inhibition%': 'numeric',
-    filesize: 'numeric',
-    numeric: 'numeric',
-    count: 'numeric',
-    int: 'numeric',
-    flag: 'numeric',
-    bool: 'numeric',
-    timestamp: 'none',
-    image: 'none',
-    control: 'none',
-    'undefined': 'none'
-};
-
-const defaultDigit = {
-    id: 'raw',
-    compound_id: 'raw',
-    assay_id: 'raw',
-    svg: 'raw',
-    json: 'raw',
-    plot: 'raw',
-    text: 'raw',
-    ec50: 'scientific',
-    'active%': 'rounded',
-    'inhibition%': 'rounded',
-    filesize: 'si',
-    numeric: 'rounded',
-    count: 'raw',
-    int: 'raw',
-    flag: 'raw',
-    bool: 'raw',
-    timestamp: 'raw',
-    image: 'raw',
-    control: 'raw',
-    'undefined': 'raw'
-};
-
 function defaultFieldProperties(fields) {
   return fields.map(e => {
     if (!e.hasOwnProperty('name')) e.name = e.key;
-    if (!e.hasOwnProperty('visible')) e.visible = !defaultHiddenFields.includes(e.key);
-    if (!e.hasOwnProperty('sortType')) e.sortType = defaultSort[e.valueType];
-    if (!e.hasOwnProperty('digit')) e.digit = defaultDigit[e.valueType];
+    if (!e.hasOwnProperty('visible')) e.visible = true;
+    if (e.hasOwnProperty('d3_format')) e.format = 'd3_format';
+    if (!e.hasOwnProperty('format')) e.format = 'raw';
     return e;
   });
 }
+
+
+function sortType(fmt) {
+  if (fmt === 'd3_format') return 'numeric';
+  if (fmt === 'numeric') return 'numeric';
+  if (fmt === 'text') return 'text';
+  return 'none';
+}
+
 
 function ongoing(data) {
   return ['running', 'ready'].includes(data.status);
@@ -139,7 +102,7 @@ function ongoing(data) {
 
 
 var def = {
-  defaultHiddenFields, defaultFieldProperties, ongoing
+  defaultFieldProperties, sortType, ongoing
 };
 
 /** @module helper/file */
@@ -160,7 +123,7 @@ const dataTypeConv = {
 
 function v07_to_v08_nodes(json) {
   const fields = json.columns.map(e => {
-    e.sortType = e.sort;
+    e.format = 'raw';
     return e;
   });
   return {
@@ -243,7 +206,9 @@ function v07_to_v08_edges(json, nodeFields) {
     dataType: dataTypeConv[json.format],
     schemaVersion: 0.8,
     revision: 0,
-    nodesID: json.nodeTableId,
+    reference: {
+      nodes: json.nodeTableId
+    },
     status: statusConv[json.status],
     fields: def.defaultFieldProperties([
       {'key': 'source'},
@@ -516,7 +481,7 @@ function singleToMulti(mapping) {
  */
 function mappingToTable(mapping) {
   const mp = mapping.hasOwnProperty('field') ? singleToMulti(mapping) : mapping;
-  const keyField = {key: mp.key, valueType: 'text'};
+  const keyField = {key: mp.key, format: 'text'};
   const data = {
     fields: def.defaultFieldProperties([keyField].concat(mp.fields)),
     records: Object.entries(mp.mapping).map(entry => {
@@ -570,7 +535,7 @@ function csvToMapping(csvString) {
   header.forEach((h, i) => {
     if (h === '') return;
     headerIdx.push(i);
-    fields.push({key: h, valueType: 'text'});
+    fields.push({key: h, format: 'text'});
   });
   const mapping = {
     created: now.toString(),
@@ -755,8 +720,8 @@ function setFieldProperties(id, updates) {
   return store$1.updateItem(id, item => {
     item.fields.forEach((fd, i) => {
       fd.visible = updates.visibles.includes(fd.key);
-      fd.sortType = updates.sortTypes[i];
-      fd.digit = updates.digits[i];
+      fd.format = updates.formats[i];
+      if (updates.d3_formats[i]) fd.d3_format = updates.d3_formats[i];
     });
     item.revision++;
   })
@@ -843,15 +808,9 @@ var store = {
  * @param {object} value - value
  * @param {string} type - si | scientific | rounded | raw
  */
-function formatNum(value, type) {
-  const conv = {
-    scientific: ".3e",
-    si: ".3s",
-    rounded: ".3r"
-  };
-  if (type === 'raw') return value;
+function formatNum(value, d3format) {
   if (value === undefined || value === null || Number.isNaN(value)) return '';
-  return value == parseFloat(value) ? d3.format(conv[type])(value) : value;
+  return value == parseFloat(value) ? d3.format(d3format)(value) : value;
 }
 
 function partialMatch(query, target) {
@@ -1000,15 +959,17 @@ function updateTableRecords(selection, rcds, keyFunc) {
       .classed('align-middle', true)
     .html(function (d, i) {
       if (d === undefined) return '';
-      if (header[i].valueType === 'plot') return '[plot]';
-      if (header[i].valueType === 'image') return '[image]';
-      if (header[i].valueType === 'control') return;
-      if (header[i].digit !== 'raw') return fmt.formatNum(d, header[i].digit);
+      if (header[i].format === 'd3_format') {
+        return fmt.formatNum(d, header[i].d3_format);
+      }
+      if (header[i].format === 'plot') return '[plot]';
+      if (header[i].format === 'image') return '[image]';
+      if (header[i].format === 'control') return;
       return d;
     })
     .each((d, i, nodes) => {
       // This should be called after html
-      if (header[i].valueType === 'control') d3.select(nodes[i]).call(d);
+      if (header[i].format === 'control') d3.select(nodes[i]).call(d);
     });
 }
 
@@ -1022,7 +983,7 @@ function appendTableRows(selection, rcds, keyFunc) {
 
 function addSort(selection) {
   selection.select('thead tr').selectAll('th')
-    .filter(d => d.sortType !== 'none')
+    .filter(d => def.sortType(d.format) !== 'none')
     .append('span').append('a')
       .attr('id', d => `sort-${d.key}`)
       .text('^v')
@@ -1031,7 +992,7 @@ function addSort(selection) {
       .style('text-align', 'center')
     .on('click', d => {
       const isAsc = d3.select(`#sort-${d.key}`).text() === 'v';
-      const isNum = d.sortType === 'numeric';
+      const isNum = def.sortType(d.format) === 'numeric';
       const cmp = isAsc
         ? (isNum ? fmt.numericAsc : fmt.textAsc)
         : (isNum ? fmt.numericDesc : fmt.textDesc);
@@ -1070,7 +1031,7 @@ function pickDialog(resources, callback) {
   });
   d3.select('#pick-submit')
     .on('click', () => {
-      d3.select('#loading-circle').style('display', 'inline');
+      d3.select('#loading-icon').style('display', 'inline');
       const query = {
         type: 'chemsearch',
         targets: resources.filter(e => e.domain === 'chemical').map(e => e.id),
@@ -1150,11 +1111,11 @@ function structDialog(resources, callback) {
     });
   d3.select('#struct-preview')
     .on('click', () => {
-      const fmt$$1 = d3form.value('#struct-format');
+      const f = d3form.value('#struct-format');
       const query = {
-        format: fmt$$1,
-        source: fmt$$1 === 'dbid' ? d3form.value('#struct-qsrc') : null,
-        value: fmt$$1 === 'molfile'
+        format: f,
+        source: f === 'dbid' ? d3form.value('#struct-qsrc') : null,
+        value: f === 'molfile'
           ? d3form.value('#struct-queryarea') : d3form.textareaLines('#struct-queryarea')[0],
       };
       return fetcher.get('strprev', query)
@@ -1165,14 +1126,14 @@ function structDialog(resources, callback) {
     .on('click', () => {
       const method = d3form.value('#struct-method');
       d3.select('#loading-circle').style('display', 'inline');
-      const fmt$$1 = d3form.value('#struct-format');
+      const f = d3form.value('#struct-format');
       const query = {
         type: d3form.value('#struct-method'),
         targets: d3form.checkboxValues('#struct-targets'),
         queryMol: {
-          format: fmt$$1,
-          source: fmt$$1 === 'dbid' ? d3form.value('#struct-qsrc') : null,
-          value: fmt$$1 === 'molfile'
+          format: f,
+          source: f === 'dbid' ? d3form.value('#struct-qsrc') : null,
+          value: f === 'molfile'
             ? d3form.value('#struct-queryarea') : d3form.textareaLines('#struct-queryarea')[0]
         },
         params: {
@@ -1233,42 +1194,43 @@ function sdfDialog(callback) {
 function columnDialog(dataFields, callback) {
   const table = {
     fields: def.defaultFieldProperties([
-      {key: 'name', valueType: 'text'},
-      {key: 'visible', valueType: 'control'},
-      {key: 'sortType', valueType: 'control'},
-      {key: 'digit', valueType: 'control'}
+      {key: 'name', format: 'text'},
+      {key: 'visible', format: 'control'},
+      {key: 'format', format: 'control'},
+      {key: 'd3_format', format: 'control'}
     ])
   };
-  const records = dataFields.map((e, i) => {
-    return {
-      key: e.key,
-      name: e.name,
-      visible: selection => selection
-          .classed('column-vis', true)
-          .classed(`row${i}`, true)
-        .append('input')
-          .attr('type', 'checkbox')
-          .attr('value', e.key)
-          .property('checked', e.visible)
-      ,sortType: selection => selection
-          .classed('column-sort', true)
-          .classed(`row${i}`, true)
-        .append('select')
-          .call(cmp.selectOptions,
-                e.sortType === 'none' ? ['none'] : ['numeric', 'text'], d => d, d => d)
-          .property('value', e.sortType)
-          .on('change', function () {
-            d3.select(`.column-digit.row${i} select`)
-              .attr('disabled', this.value === 'numeric' ? null : 'disabled');
-          })
-      ,digit: selection => selection
-          .classed('column-digit', true)
-          .classed(`row${i}`, true)
-        .append('select')
-          .call(cmp.selectOptions, ['raw', 'rounded', 'scientific', 'si'], d => d, d => d)
-          .property('value', e.digit)
-          .attr('disabled', e.sortType === 'numeric' ? null : 'disabled')
-    };
+  const records = dataFields.map(e => {
+    const rcd = {};
+    const generalFormat = ['text', 'numeric', 'd3_format'];
+    rcd.name = e.name;
+    rcd.visible = selection => selection
+        .classed('column-vis', true)
+        .classed(`row-${e.key}`, true)
+      .append('input')
+        .attr('type', 'checkbox')
+        .attr('value', e.key)
+        .property('checked', e.visible);
+    rcd.format = selection => selection
+        .classed('column-format', true)
+        .classed(`row-${e.key}`, true)
+      .append('select')
+        .call(cmp.selectOptions,
+              generalFormat.includes(e.format) ? generalFormat : [e.format],
+              d => d, d => d)
+        .property('value', e.format)
+        .attr('disabled', generalFormat.includes(e.format) ? null : 'disabled')
+        .on('change', function () {
+          d3.select(`.column-d3f.row-${e.key} input`)
+            .attr('disabled', this.value === 'd3_format' ? null : 'disabled');
+        });
+    rcd.d3_format = selection => selection
+        .classed('column-d3f', true)
+        .classed(`row-${e.key}`, true)
+      .append('input')
+        .property('value', e.d3_format)
+        .attr('disabled', e.format === 'd3_format' ? null : 'disabled');
+    return rcd;
   });
   d3.select('#column-table')
     .call(cmp.createTable, table)
@@ -1277,8 +1239,8 @@ function columnDialog(dataFields, callback) {
     .on('click', () => {
       const query = {
         visibles: d3form.checkboxValues('.column-vis'),
-        sortTypes: d3form.optionValues('.column-sort'),
-        digits: d3form.optionValues('.column-digit')
+        formats: d3form.optionValues('.column-format'),
+        d3_formats: d3form.inputValues('.column-d3f')
       };
       return store.setFieldProperties(win.URLQuery().id, query)
         .then(callback);
@@ -1358,8 +1320,8 @@ function fieldFileDialog(callback) {
         mapping = mapper.singleToMulti(mapping);
       }
       mapping.fields.forEach((e, i) => {
-        if (e.valueType === 'plot') {
-          mapping.fields[i].valueType = 'image';
+        if (e.format === 'plot') {
+          mapping.fields[i].format = 'image';
           plotCols.push(i);
         }
       });
@@ -1499,6 +1461,21 @@ function fetchResults(command='update') {
 }
 
 
+function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker
+      .register('sw.js')
+      .then(reg => {
+        console.info('ServiceWorker registration successful with scope: ', reg.scope);
+      }).catch(err => {
+        console.info('ServiceWorker registration failed: ', err);
+      });
+  } else {
+    console.info('Off-line mode is not supported');
+  }
+}
+
+
 function loader() {
   /*
   if (document.location.protocol === "file:") {
@@ -1513,19 +1490,6 @@ function loader() {
       return Promise.resolve();
     }
   }*/
-  if ('serviceWorker' in navigator && !debug) {
-    navigator.serviceWorker
-      .register('sw.js')
-      .then(reg => {
-        console.info('ServiceWorker registration successful with scope: ', reg.scope);
-      }).catch(err => {
-        console.info('ServiceWorker registration failed: ', err);
-      });
-  } else if (debug) {
-    console.info('Off-line mode is disabled for debugging');
-  } else {
-    console.info('Off-line mode is not supported');
-  }
   const server = fetcher.get('server')
     .then(fetcher.json)
     .catch(() => null);
@@ -1534,6 +1498,11 @@ function loader() {
     const serverStatus = ps[0];
     const clientInstance = ps[1];
     if (!serverStatus) return Promise.resolve(null);
+    if (!serverStatus.debugMode) {
+      registerServiceWorker();
+    } else {
+      console.info('Off-line mode is disabled for debugging');
+    }
     if (serverStatus.instance === clientInstance) {
       console.info('Resource schema is already up to date');
       return Promise.resolve(serverStatus);
@@ -1547,6 +1516,8 @@ function loader() {
             store.setAppSetting('templates', schema.templates),
             store.setAppSetting(
               'compoundIDPlaceholder', schema.compoundIDPlaceholder),
+              store.setAppSetting(
+                'defaultDataType', schema.defaultDataType),
             store.setAppSetting('serverInstance', serverStatus.instance),
             store.setAppSetting('rdkit', serverStatus.rdkit)
           ])
@@ -1558,7 +1529,7 @@ function loader() {
 
 
 var common = {
-  interactiveInsert, fetchResults, loader
+  interactiveInsert, fetchResults, registerServiceWorker, loader
 };
 
 d3.select('#refids-submit').on('click', () => {

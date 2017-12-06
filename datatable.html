@@ -17,7 +17,7 @@
 <script src="kwdatatable.js"></script>
 <body style="overflow-y: hidden"><!-- disable scroll for DataGrid -->
 <div class="container-fluid">
-  <img id="loading-circle" src="../assets/loading.gif"/>
+  <img id="loading-icon" src="./assets/loading2.gif"/>
   <div class="btn-toolbar">
     <div id="new-data" class="btn-group">
       <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown">+ Fetch compounds</button>
@@ -36,7 +36,9 @@
       <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-toggle="dropdown">Table control</button>
       <div class="dropdown-menu">
         <a class="dropdown-item" data-toggle="modal" data-target="#column-dialog">Select columns to show</a>
+        <!--
         <a class="dropdown-item online-command" data-toggle="modal" data-target="#join-dialog">Join data columns</a>
+        -->
         <a class="dropdown-item" data-toggle="modal" data-target="#importcol-dialog">Import data columns</a>
         <a class="dropdown-item online-command" data-toggle="modal" data-target="#graph-dialog">Add common substructure map</a>
         <a id="rename" class="dropdown-item" data-toggle="modal" data-target="#prompt-dialog">Rename table</a>
