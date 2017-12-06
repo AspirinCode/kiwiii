@@ -89,9 +89,8 @@ function defaultFieldProperties(fields) {
 
 
 function sortType(fmt) {
-  if (fmt === 'd3_format') return 'numeric';
-  if (fmt === 'numeric') return 'numeric';
-  if (fmt === 'text') return 'text';
+  if (['numeric', 'd3_format'].includes(fmt)) return 'numeric';
+  if (['text', 'compound_id'].includes(fmt)) return 'text';
   return 'none';
 }
 
@@ -183,7 +182,7 @@ function v07_to_v08_edges(json, nodeFields) {
     snp.nodeLabel.field = nodeFields.find(e => e.key === json.snapshot.nodeLabel.column);
   } else {
     snp.nodeLabel = {
-      id: 'label', size: 12, text: '_index', visible: false, field: nodeFields[0],
+      id: 'label', size: 12, text: 'index', visible: false, field: nodeFields[0],
       scale: {scale: 'linear', domain: [0, 1], range: ['black', 'white'], unknown: 'gray'}
     };
   }
@@ -503,7 +502,7 @@ function mappingToTable(mapping) {
  * @param {object} key - key
  * @return {object} field mapping
  */
-function tableToMapping(table, key, ignore=['_index']) {
+function tableToMapping(table, key, ignore=['index']) {
   const now = new Date();
   const mapping = {
     created: now.toString(),
@@ -1202,7 +1201,7 @@ function columnDialog(dataFields, callback) {
   };
   const records = dataFields.map(e => {
     const rcd = {};
-    const generalFormat = ['text', 'numeric', 'd3_format'];
+    const generalFormat = ['text', 'numeric', 'd3_format', 'raw', 'compound_id'];
     rcd.name = e.name;
     rcd.visible = selection => selection
         .classed('column-vis', true)
@@ -1218,8 +1217,8 @@ function columnDialog(dataFields, callback) {
         .call(cmp.selectOptions,
               generalFormat.includes(e.format) ? generalFormat : [e.format],
               d => d, d => d)
-        .property('value', e.format)
         .attr('disabled', generalFormat.includes(e.format) ? null : 'disabled')
+        .property('value', e.format)
         .on('change', function () {
           d3.select(`.column-d3f.row-${e.key} input`)
             .attr('disabled', this.value === 'd3_format' ? null : 'disabled');
@@ -1228,8 +1227,9 @@ function columnDialog(dataFields, callback) {
         .classed('column-d3f', true)
         .classed(`row-${e.key}`, true)
       .append('input')
-        .property('value', e.d3_format)
-        .attr('disabled', e.format === 'd3_format' ? null : 'disabled');
+        .attr('size', 10)
+        .attr('disabled', e.format === 'd3_format' ? null : 'disabled')
+        .property('value', e.d3_format);
     return rcd;
   });
   d3.select('#column-table')

@@ -89,9 +89,8 @@ function defaultFieldProperties(fields) {
 
 
 function sortType(fmt) {
-  if (fmt === 'd3_format') return 'numeric';
-  if (fmt === 'numeric') return 'numeric';
-  if (fmt === 'text') return 'text';
+  if (['numeric', 'd3_format'].includes(fmt)) return 'numeric';
+  if (['text', 'compound_id'].includes(fmt)) return 'text';
   return 'none';
 }
 
@@ -340,7 +339,7 @@ function mappingToTable(mapping) {
  * @param {object} key - key
  * @return {object} field mapping
  */
-function tableToMapping(table, key, ignore=['_index']) {
+function tableToMapping(table, key, ignore=['index']) {
   const now = new Date();
   const mapping = {
     created: now.toString(),
@@ -716,7 +715,7 @@ function v07_to_v08_edges(json, nodeFields) {
     snp.nodeLabel.field = nodeFields.find(e => e.key === json.snapshot.nodeLabel.column);
   } else {
     snp.nodeLabel = {
-      id: 'label', size: 12, text: '_index', visible: false, field: nodeFields[0],
+      id: 'label', size: 12, text: 'index', visible: false, field: nodeFields[0],
       scale: {scale: 'linear', domain: [0, 1], range: ['black', 'white'], unknown: 'gray'}
     };
   }
@@ -1202,7 +1201,7 @@ function columnDialog(dataFields, callback) {
   };
   const records = dataFields.map(e => {
     const rcd = {};
-    const generalFormat = ['text', 'numeric', 'd3_format'];
+    const generalFormat = ['text', 'numeric', 'd3_format', 'raw', 'compound_id'];
     rcd.name = e.name;
     rcd.visible = selection => selection
         .classed('column-vis', true)
@@ -1218,8 +1217,8 @@ function columnDialog(dataFields, callback) {
         .call(cmp.selectOptions,
               generalFormat.includes(e.format) ? generalFormat : [e.format],
               d => d, d => d)
-        .property('value', e.format)
         .attr('disabled', generalFormat.includes(e.format) ? null : 'disabled')
+        .property('value', e.format)
         .on('change', function () {
           d3.select(`.column-d3f.row-${e.key} input`)
             .attr('disabled', this.value === 'd3_format' ? null : 'disabled');
@@ -1228,8 +1227,9 @@ function columnDialog(dataFields, callback) {
         .classed('column-d3f', true)
         .classed(`row-${e.key}`, true)
       .append('input')
-        .property('value', e.d3_format)
-        .attr('disabled', e.format === 'd3_format' ? null : 'disabled');
+        .attr('size', 10)
+        .attr('disabled', e.format === 'd3_format' ? null : 'disabled')
+        .property('value', e.d3_format);
     return rcd;
   });
   d3.select('#column-table')
@@ -1547,9 +1547,9 @@ function updateChem(resources) {
       d3.select('#compoundid').html(rcd.compound_id);
       d3.select('#compounddb').html(
         resources.find(e => e.id === rcd.source).name);
-      d3.select('#structure').html(rcd._structure);
+      d3.select('#structure').html(rcd.structure);
       const records = res.fields
-        .filter(e => !['_structure', '_index', 'compound_id'].includes(e.key))
+        .filter(e => !['structure', 'index', 'compound_id'].includes(e.key))
         .map(e => ({ key: e.name, value: rcd[e.key] }));
       const data = {
         fields: def.defaultFieldProperties([
@@ -1620,12 +1620,12 @@ function updateActivities() {
       const table = {
         fields: def.defaultFieldProperties([
           {key: 'assay_id', name: 'Assay ID', format: 'text'},
-          {key: 'field', name: 'Value type', format: 'text'},
-          {key: '_value', name: 'value', format: 'numeric'}
+          {key: 'value_type', name: 'Value type', format: 'text'},
+          {key: 'value', name: 'value', format: 'numeric'}
         ])
       };
       d3.select('#results').call(cmp.createTable, table)
-        .call(cmp.updateTableRecords, res.records, d => d._index)
+        .call(cmp.updateTableRecords, res.records, d => d.index)
         .call(cmp.addSort);
     }, fetcher.error);
 }
