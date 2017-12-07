@@ -1,4 +1,4 @@
-// https://github.com/mojaie/kiwiii Version 0.8.1. Copyright 2017 Seiji Matsuoka.
+// https://github.com/mojaie/kiwiii Version 0.8.3. Copyright 2017 Seiji Matsuoka.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(require('d3')) :
 	typeof define === 'function' && define.amd ? define(['d3'], factory) :
