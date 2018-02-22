@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Home</title>
+    <title>JSDoc: Source: common/sw.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,32 +17,40 @@
 
 <div id="main">
 
-    <h1 class="page-title">Home</h1>
+    <h1 class="page-title">Source: common/sw.js</h1>
 
     
 
 
 
     
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>
+/** @module common/sw */
 
 
-    <h3> </h3>
+function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker
+      .register('sw.js')
+      .then(reg => {
+        console.info('ServiceWorker registration successful with scope: ', reg.scope);
+      }).catch(err => {
+        console.info('ServiceWorker registration failed: ', err);
+      });
+  } else {
+    console.info('Off-line mode is not supported');
+  }
+}
 
 
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
+export default {
+  registerServiceWorker
+};
+</code></pre>
+        </article>
+    </section>
 
 
 

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: network/component.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: network/component.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>
+/** @module network/component */
+
+import d3 from 'd3';
+
+import {default as scale} from '../common/scale.js';
+import {default as misc} from '../common/misc.js';
+
+
+const svgWidth = 180;  //TODO
+const svgHeight = 180;  //TODO
+
+
+function updateNodes(selection, records, showStruct) {
+  const nodes = selection.selectAll('.node')
+    .data(records, d => d.index);
+  nodes.exit().remove();
+  const entered = nodes.enter()
+    .append('g')
+      .attr('class', 'node')
+      .call(updateNodeCoords);
+  entered.append('circle')
+      .attr('class', 'node-symbol');
+  entered.append('g')
+      .attr('class', 'node-content')
+      .attr('transform', `translate(${-svgWidth / 2},${-svgHeight / 2})`);
+  entered.append('text')
+      .attr('class', 'node-label')
+      .attr('x', 0)
+      .attr('text-anchor', 'middle');
+  const merged = entered.merge(nodes);
+  if (showStruct) {
+    merged.select('.node-content').html(d => d.structure);
+  } else {
+    merged.select('.node-content').select('svg').remove();
+  }
+}
+
+
+function updateEdges(selection, records) {
+  const edges = selection.selectAll('.link')
+    .data(records, d => `${d.source}_${d.target}`);
+  edges.exit().remove();
+  const entered = edges.enter()
+    .append('g')
+      .attr('class', 'link');
+  entered.append('line')
+      .attr('class', 'edge-line')
+      .style('stroke', '#999')
+      .style('stroke-opacity', 0.6);
+  entered.append('text')
+      .attr('class', 'edge-label')
+      .attr('text-anchor', 'middle')
+      .text(d => d.weight);
+  // draw all components and then
+  entered.call(updateEdgeCoords);
+}
+
+
+function updateNodeAttrs(selection, state) {
+  selection.selectAll('.node')
+    .each(function (d) {
+      const color = scale.scaleFunction(state.nodeColor)(d[state.nodeColor.field]);
+      const size = scale.scaleFunction(state.nodeSize)(d[state.nodeSize.field]);
+      const labelColor = scale.scaleFunction(state.nodeLabelColor)(d[state.nodeLabelColor.field]);
+      d3.select(this).select('.node-symbol')
+          .attr('r', size)
+          .style('fill', color);
+      d3.select(this).select('.node-label')
+          .text(d => {
+            if (state.nodeLabel.text === null) return '';
+            const field = state.data.nodes.fields.find(e => e.key === state.nodeLabel.text);
+            if (field.format === 'd3_format') {
+              return misc.formatNum(d[state.nodeLabel.text], field.d3_format);
+            }
+            return d[state.nodeLabel.text];
+          })
+          .attr('font-size', state.nodeLabel.size)
+          .attr('y', parseFloat(size) + parseInt(state.nodeLabel.size))
+          .attr('visibility', state.nodeLabel.visible ? 'inherit' : 'hidden')
+          .style('fill', labelColor);
+    });
+}
+
+
+function updateEdgeAttrs(selection, state) {
+  selection.selectAll('.link').select('.edge-line')
+    .style('stroke-width', d => scale.scaleFunction(state.edgeWidth)(d.weight));
+  selection.selectAll('.link').select('.edge-label')
+    .attr('visibility', state.edgeLabel.visible ? 'inherit' : 'hidden')
+    .attr('font-size', state.edgeLabel.size);
+}
+
+
+function updateNodeCoords(selection) {
+  selection.attr('transform', d => `translate(${d.x}, ${d.y})`);
+}
+
+
+function updateEdgeCoords(selection) {
+  selection.attr('transform', d => `translate(${d.sx}, ${d.sy})`);
+  selection.select('.edge-line')
+    .attr('x1', 0)
+    .attr('y1', 0)
+    .attr('x2', d => d.tx - d.sx)
+    .attr('y2', d => d.ty - d.sy);
+  selection.select('.edge-label')
+    .attr('x', d => (d.tx - d.sx) / 2)
+    .attr('y', d => (d.ty - d.sy) / 2);
+}
+
+
+function updateAttrs(selection, state) {
+  selection.select('.nw-nodes').call(updateNodeAttrs, state);
+  selection.select('.nw-edges').call(updateEdgeAttrs, state);
+}
+
+
+function updateComponents(selection, state) {
+  const nodesToRender = state.nodesToRender();
+  const numNodes = nodesToRender.length;
+  if (state.enableFocusedView) {
+    state.focusedView = numNodes &lt; state.focusedViewThreshold;
+  }
+  if (state.enableOverlookView) {
+    state.overlookView = numNodes > state.overlookViewThreshold;
+  }
+  const edgesToRender = state.overlookView ? [] : state.edgesToRender();
+  selection.select('.nw-nodes')
+    .call(updateNodes, nodesToRender, state.focusedView);
+  selection.select('.nw-edges')
+    .call(updateEdges, edgesToRender);
+  selection.call(updateAttrs, state);
+  // Rebind event listeners
+  if (state.zoomListener) {
+    selection.call(state.zoomListener);
+  }
+  if (state.dragListener) {
+    selection.select('.nw-nodes').selectAll('.node')
+      .call(state.dragListener);
+  }
+}
+
+
+function moveNode(selection, x, y) {
+  selection.attr('transform', `translate(${x}, ${y})`);
+}
+
+
+function moveEdge(selection, sx, sy, tx, ty) {
+  selection.attr('transform', `translate(${sx}, ${sy})`);
+  selection.select('.edge-line')
+    .attr('x1', 0)
+    .attr('y1', 0)
+    .attr('x2', tx - sx)
+    .attr('y2', ty - sy);
+  selection.select('.edge-label')
+    .attr('x', (tx - sx) / 2)
+    .attr('y', (ty - sy) / 2);
+}
+
+
+function move(selection, node, x, y) {
+  const n = d3.select(node).call(moveNode, x, y).datum();
+  selection.select('.nw-edges')
+    .selectAll(".link")
+    .filter(d => n.adjacency.map(e => e[1]).includes(d.num))
+    .each(function (d) {
+      if (n.index === d.source.index) {
+        d3.select(this).call(moveEdge, x, y, d.tx, d.ty);
+      } else if (n.index === d.target.index) {
+        d3.select(this).call(moveEdge, d.sx, d.sy, x, y);
+      }
+    });
+}
+
+
+function transform(selection, tx, ty, tk) {
+  selection.select('.nw-field')
+    .attr('transform', `translate(${tx}, ${ty}) scale(${tk})`);
+}
+
+
+function resizeViewBox(selection, width, height) {
+  selection.attr('viewBox', `0 0 ${width} ${height}`);
+  selection.select('.nw-view-boundary')
+    .attr('width', width)
+    .attr('height', height);
+}
+
+
+export default {
+  updateNodes, updateEdges, updateNodeCoords, updateEdgeCoords,
+  updateNodeAttrs, updateEdgeAttrs, updateAttrs, updateComponents,
+  move, transform, resizeViewBox
+};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-common_core.html">common/core</a></li><li><a href="module-common_fetcher.html">common/fetcher</a></li><li><a href="module-common_file.html">common/file</a></li><li><a href="module-common_idb.html">common/idb</a></li><li><a href="module-common_image.html">common/image</a></li><li><a href="module-common_KArray.html">common/KArray</a></li><li><a href="module-common_legacySchema.html">common/legacySchema</a></li><li><a href="module-common_mapper.html">common/mapper</a></li><li><a href="module-common_misc.html">common/misc</a></li><li><a href="module-common_scale.html">common/scale</a></li><li><a href="module-common_sw.html">common/sw</a></li><li><a href="module-component_button.html">component/button</a></li><li><a href="module-component_formBox.html">component/formBox</a></li><li><a href="module-component_formBoxGroup.html">component/formBoxGroup</a></li><li><a href="module-component_formListBox.html">component/formListBox</a></li><li><a href="module-component_formRangeBox.html">component/formRangeBox</a></li><li><a href="module-component_modal.html">component/modal</a></li><li><a href="module-component_table.html">component/table</a></li><li><a href="module-control.html">control</a></li><li><a href="module-datagrid.html">datagrid</a></li><li><a href="module-datagrid_component.html">datagrid/component</a></li><li><a href="module-datagrid_datagridApp.html">datagrid/datagridApp</a></li><li><a href="module-datagrid_newDatagrid.html">datagrid/newDatagrid</a></li><li><a href="module-datagrid_rowFilter.html">datagrid/rowFilter</a></li><li><a href="module-datagrid_sort.html">datagrid/sort</a></li><li><a href="module-datagrid_state.html">datagrid/state</a></li><li><a href="module-datagrid_view.html">datagrid/view</a></li><li><a href="module-dialog_community.html">dialog/community</a></li><li><a href="module-dialog_fieldConfig.html">dialog/fieldConfig</a></li><li><a href="module-dialog_fieldFetch.html">dialog/fieldFetch</a></li><li><a href="module-dialog_fieldFile.html">dialog/fieldFile</a></li><li><a href="module-dialog_filter.html">dialog/filter</a></li><li><a href="module-dialog_formGroup.html">dialog/formGroup</a></li><li><a href="module-dialog_networkgen.html">dialog/networkgen</a></li><li><a href="module-dialog_rename.html">dialog/rename</a></li><li><a href="module-dialog_sdf.html">dialog/sdf</a></li><li><a href="module-dialog_search.html">dialog/search</a></li><li><a href="module-dialog_struct.html">dialog/struct</a></li><li><a href="module-network.html">network</a></li><li><a href="module-network_communityDetection.html">network/communityDetection</a></li><li><a href="module-network_component.html">network/component</a></li><li><a href="module-network_controlBox.html">network/controlBox</a></li><li><a href="module-network_force.html">network/force</a></li><li><a href="module-network_interaction.html">network/interaction</a></li><li><a href="module-network_networkApp.html">network/networkApp</a></li><li><a href="module-network_state.html">network/state</a></li><li><a href="module-network_view.html">network/view</a></li><li><a href="module-profile.html">profile</a></li><li><a href="module-testAPI.html">testAPI</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu Feb 22 2018 21:42:17 GMT+0900 (JST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

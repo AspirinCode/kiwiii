@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: component/formBoxGroup.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: component/formBoxGroup.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>
+/** @module component/formBoxGroup */
+
+import d3 from 'd3';
+
+import {default as lbox} from '../component/formListBox.js';
+import {default as rbox} from '../component/formRangeBox.js';
+import {default as scaledef} from '../common/scale.js';
+
+
+/**
+ * Render color range control box group
+ * @param {d3.selection} selection - selection of box container (div element)
+ */
+function colorRangeGroup(selection, id, palettes, rangeTypes, range) {
+  selection
+      .classed('mb-3', true);
+  selection.append('div')
+      .classed('palette', true)
+      .classed('mb-1', true)
+      .call(lbox.selectBox, `${id}-palette`, 'Color palette', palettes, 'hoge');
+  selection.append('div')
+      .classed('rangetype', true)
+      .classed('mb-1', true)
+      .call(
+        lbox.selectBox, `${id}-rangetype`, 'Range type', rangeTypes,
+        scaledef.colorRangeTypes.find(e => e.size === range.length).key
+      );
+  selection.append('div')
+      .classed('range', true)
+      .classed('mb-1', true)
+      .call(rbox.colorScaleBox, `${id}-range`, 'Range', range);
+  selection.call(updateColorRangeGroup, range);
+}
+
+
+function updateColorRangeGroup(selection, range) {
+  selection.select('.palette')
+      .call(
+        lbox.updateSelectBox,
+        scaledef.colorRangeTypes.find(e => e.size === range.length).key
+      )
+      .on('change', function () {
+        const value = lbox.selectBoxValue(d3.select(this));
+        const p = scaledef.colorPalettes.find(e => e.key === value);
+        const t = scaledef.colorRangeTypes.find(e => e.size === p.range.length);
+        selection.select('.rangetype').call(lbox.updateSelectBox, t.key);
+        selection.select('.range').call(rbox.updateColorScaleBox, p.range);
+      });
+  selection.select('.rangetype')
+      .on('change', function () {
+        const value = lbox.selectBoxValue(d3.select(this));
+        const size = scaledef.colorRangeTypes.find(e => e.key === value).size;
+        selection.select('.range').select('.min')
+            .property('disabled', size > 3)
+            .style('opacity', size &lt;= 3 ? null : 0.3);
+        selection.select('.range').select('.mid')
+            .property('disabled', size !== 3)
+            .style('opacity', size === 3 ? null : 0.3);
+        selection.select('.range').select('.max')
+            .property('disabled', size > 3)
+            .style('opacity', size &lt;= 3 ? null : 0.3);
+      });
+  selection.select('.range')
+      .call(rbox.updateColorScaleBox, range)
+      .on('focusin', () => {
+        selection.dispatch('change');
+      });
+}
+
+
+function colorRangeGroupValue(selection) {
+  const type = lbox.selectBoxValue(selection.select('.rangetype'));
+  const values = rbox.colorScaleBoxValue(selection.select('.range'));
+  if (!values.length) {
+    return scaledef.colorRangeTypes.find(e => e.key === type).range;
+  } else {
+    return values;
+  }
+}
+
+
+/**
+ * Render scale and domain control box group
+ * @param {d3.selection} selection - selection of box container (div element)
+ */
+function scaleBoxGroup(selection, id, presets, scaleTypes, scale, domain) {
+  selection
+      .classed('mb-3', true);
+  selection.append('div')
+      .classed('preset', true)
+      .classed('mb-1', true)
+      .call(lbox.selectBox, `${id}-preset`, 'Scale preset', presets, '');
+  selection.append('div')
+      .classed('scale', true)
+      .classed('mb-1', true)
+      .call(lbox.selectBox, `${id}-scale`, 'Scale type', scaleTypes, scale);
+  selection.append('div')
+      .classed('domain', true)
+      .classed('mb-1', true)
+      .call(rbox.rangeBox, `${id}-domain`, 'Domain', domain);
+  selection.call(updateScaleBoxGroup, scale, domain);
+}
+
+
+function updateScaleBoxGroup(selection, scale, domain) {
+  selection.select('.preset')
+    .on('change', function () {
+      const value = lbox.selectBoxValue(d3.select(this));
+      const p = scaledef.presets.find(e => e.key == value);
+      selection.select('.scale').call(lbox.updateSelectBox, p.scale);
+      selection.select('.domain').call(rbox.updateRangeBox, p.domain);
+    });
+  selection.select('.scale')
+      .call(lbox.updateSelectBox, scale)
+      .on('change', () => {
+        selection.select('.domain').dispatch('change');
+      });
+  selection.select('.domain')
+      .call(rbox.updateRangeBox, domain)
+      .on('change', function () {
+        const isLog = lbox.selectBoxValue(selection.select('.scale')) === 'log';
+        const domain = rbox.rangeBoxValue(d3.select(this));
+        const invalid = d => isNaN(d) || (isLog &amp;&amp; d &lt;= 0);
+        d3.select(this).select('.min')
+            .style('background-color', invalid(domain[0]) ? '#ffcccc' : '#ffffff');
+        d3.select(this).select('.max')
+            .style('background-color', invalid(domain[1]) ? '#ffcccc' : '#ffffff');
+      });
+}
+
+
+function scaleBoxGroupValue(selection) {
+  const scale = lbox.selectBoxValue(selection.select('.scale'));
+  const domain = rbox.rangeBoxValue(selection.select('.domain'));
+  return {scale: scale, domain: domain};
+}
+
+
+export default {
+  colorRangeGroup, updateColorRangeGroup, colorRangeGroupValue,
+  scaleBoxGroup, updateScaleBoxGroup, scaleBoxGroupValue
+};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-common_core.html">common/core</a></li><li><a href="module-common_fetcher.html">common/fetcher</a></li><li><a href="module-common_file.html">common/file</a></li><li><a href="module-common_idb.html">common/idb</a></li><li><a href="module-common_image.html">common/image</a></li><li><a href="module-common_KArray.html">common/KArray</a></li><li><a href="module-common_legacySchema.html">common/legacySchema</a></li><li><a href="module-common_mapper.html">common/mapper</a></li><li><a href="module-common_misc.html">common/misc</a></li><li><a href="module-common_scale.html">common/scale</a></li><li><a href="module-common_sw.html">common/sw</a></li><li><a href="module-component_button.html">component/button</a></li><li><a href="module-component_formBox.html">component/formBox</a></li><li><a href="module-component_formBoxGroup.html">component/formBoxGroup</a></li><li><a href="module-component_formListBox.html">component/formListBox</a></li><li><a href="module-component_formRangeBox.html">component/formRangeBox</a></li><li><a href="module-component_modal.html">component/modal</a></li><li><a href="module-component_table.html">component/table</a></li><li><a href="module-control.html">control</a></li><li><a href="module-datagrid.html">datagrid</a></li><li><a href="module-datagrid_component.html">datagrid/component</a></li><li><a href="module-datagrid_datagridApp.html">datagrid/datagridApp</a></li><li><a href="module-datagrid_newDatagrid.html">datagrid/newDatagrid</a></li><li><a href="module-datagrid_rowFilter.html">datagrid/rowFilter</a></li><li><a href="module-datagrid_sort.html">datagrid/sort</a></li><li><a href="module-datagrid_state.html">datagrid/state</a></li><li><a href="module-datagrid_view.html">datagrid/view</a></li><li><a href="module-dialog_community.html">dialog/community</a></li><li><a href="module-dialog_fieldConfig.html">dialog/fieldConfig</a></li><li><a href="module-dialog_fieldFetch.html">dialog/fieldFetch</a></li><li><a href="module-dialog_fieldFile.html">dialog/fieldFile</a></li><li><a href="module-dialog_filter.html">dialog/filter</a></li><li><a href="module-dialog_formGroup.html">dialog/formGroup</a></li><li><a href="module-dialog_networkgen.html">dialog/networkgen</a></li><li><a href="module-dialog_rename.html">dialog/rename</a></li><li><a href="module-dialog_sdf.html">dialog/sdf</a></li><li><a href="module-dialog_search.html">dialog/search</a></li><li><a href="module-dialog_struct.html">dialog/struct</a></li><li><a href="module-network.html">network</a></li><li><a href="module-network_communityDetection.html">network/communityDetection</a></li><li><a href="module-network_component.html">network/component</a></li><li><a href="module-network_controlBox.html">network/controlBox</a></li><li><a href="module-network_force.html">network/force</a></li><li><a href="module-network_interaction.html">network/interaction</a></li><li><a href="module-network_networkApp.html">network/networkApp</a></li><li><a href="module-network_state.html">network/state</a></li><li><a href="module-network_view.html">network/view</a></li><li><a href="module-profile.html">profile</a></li><li><a href="module-testAPI.html">testAPI</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu Feb 22 2018 21:42:17 GMT+0900 (JST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

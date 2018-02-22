@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Home</title>
+    <title>JSDoc: Source: network.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,32 +17,72 @@
 
 <div id="main">
 
-    <h1 class="page-title">Home</h1>
+    <h1 class="page-title">Source: network.js</h1>
 
     
 
 
 
     
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>
+/** @module network */
+
+import d3 from 'd3';
+
+import {default as core} from './common/core.js';
+import {default as hfile} from './common/file.js';
+import {default as misc} from './common/misc.js';
+
+import {default as button} from './component/button.js';
+
+import {default as view} from './network/view.js';
+import {default as networkApp} from './network/networkApp.js';
 
 
-    <h3> </h3>
+function run() {
+  // TODO: offline mode flags
+  const localFile = document.location.protocol !== "file:";  // TODO
+  const offLine = 'onLine' in navigator &amp;&amp; !navigator.onLine;  // TODO
+  const storeID = misc.URLQuery().id || null;
+  const dataURL = misc.URLQuery().location || null;
+  if (storeID) {
+    // Load from IndexedDB store
+    return core.fetchProgress(storeID, 'update')
+      .then(() => networkApp.getGraph(storeID))
+      .then(networkApp.app);
+  } else if (dataURL) {
+    // Fetch via HTTP
+    return hfile.fetchJSON(dataURL)
+      .then(networkApp.app);
+  } else {
+    // New network
+    const menubar = d3.select('#menubar');
+    menubar.selectAll('div,a').remove();
+    const menu = menubar.append('div')
+        .call(button.dropdownMenuButton, null, '+ New network', 'primary')
+        .select('.dropdown-menu');
+    menu.append('a')
+        .call(button.dropdownMenuFile, 'import', 'Import view', '.gfc,.gfr,.json,.gz')
+        .on('change', function () {
+          const file = button.dropdownMenuFileValue(d3.select(this));
+          hfile.loadJSON(file).then(networkApp.app);
+        });
+    menubar.append('a')
+        .call(button.menuButton, null, 'Control panel', 'outline-secondary')
+        .attr('href', 'control.html')
+        .attr('target', '_blank');
+  }
+}
 
 
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
+export default {
+  view, run
+};
+</code></pre>
+        </article>
+    </section>
 
 
 

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Home</title>
+    <title>JSDoc: Source: common/fetcher.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,32 +17,78 @@
 
 <div id="main">
 
-    <h1 class="page-title">Home</h1>
+    <h1 class="page-title">Source: common/fetcher.js</h1>
 
     
 
 
 
     
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>
+/** @module common/fetcher */
 
 
-    <h3> </h3>
+const baseURL = '';
+
+function get(url, query={}) {
+  const isEmpty = Object.keys(query).length;
+  const q = isEmpty ? `?query=${JSON.stringify(query)}` : '';
+  return fetch(
+    `${baseURL}${url}${q}`,
+    {
+      credentials: 'include'
+    }
+  ).then(res => {
+    if (res.status !== 200) {
+      return Promise.reject(new Error(res.statusText));
+    }
+    return Promise.resolve(res);
+  });
+}
+
+function json(response) {
+  return response.json();
+}
+
+function text(response) {
+  return response.text();
+}
+
+function blob(response) {
+  return response.blob();
+}
+
+function post(url, formdata) {
+  return fetch(
+    `${baseURL}${url}`,
+    {
+      method: 'POST',
+      body: formdata,
+      credentials: 'include'
+    }
+  ).then(res => {
+    if (res.status !== 200) {
+      return Promise.reject(new Error(res.statusText));
+    }
+    return Promise.resolve(res);
+  });
+}
 
 
+function error(err) {
+  console.error(err);
+  return null;
+}
 
 
-
-
-
-
-
-
-    
-
-
-
-
-
+export default {
+  get, json, text, blob, post, error
+};
+</code></pre>
+        </article>
+    </section>
 
 
 

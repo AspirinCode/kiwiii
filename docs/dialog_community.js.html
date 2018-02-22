@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Home</title>
+    <title>JSDoc: Source: dialog/community.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,32 +17,60 @@
 
 <div id="main">
 
-    <h1 class="page-title">Home</h1>
+    <h1 class="page-title">Source: dialog/community.js</h1>
 
     
 
 
 
     
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>
+/** @module dialog/community */
 
 
-    <h3> </h3>
+import {default as button} from '../component/button.js';
+import {default as box} from '../component/formBox.js';
+import {default as modal} from '../component/modal.js';
 
 
+const id = 'community-dialog';
+const title = 'Comunity detection';
 
 
+function menuLink(selection) {
+  selection.call(button.dropdownMenuModal, 'community', title, id);
+}
 
 
+function body(selection) {
+  const dialog = selection.call(modal.submitDialog, id, title);
+  // Name
+  dialog.select('.modal-body').append('div')
+      .classed('name', true)
+      .call(box.textBox, 'comm-name', 'New name', 40, 'comm_');
+  // Assign null to isolated nodes
+  dialog.select('.modal-body').append('div')
+      .classed('nulliso', true)
+      .call(box.checkBox, 'comm-nulliso', 'Assign null to isolated nodes', true);
+}
 
 
+function value(selection) {
+  return {
+    name: box.textBoxValue(selection.select('.name')),
+    nulliso: box.checkBoxValue(selection.select('.nulliso'))
+  };
+}
 
 
-    
-
-
-
-
-
+export default {
+  menuLink, body, value
+};
+</code></pre>
+        </article>
+    </section>
 
 
 

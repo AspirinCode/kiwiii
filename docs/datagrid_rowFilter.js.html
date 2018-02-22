@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Home</title>
+    <title>JSDoc: Source: datagrid/rowFilter.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,32 +17,45 @@
 
 <div id="main">
 
-    <h1 class="page-title">Home</h1>
+    <h1 class="page-title">Source: datagrid/rowFilter.js</h1>
 
     
 
 
 
     
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>
+/** @module datagrid/rowFilter */
+
+import d3 from 'd3';
+import {default as misc} from '../common/misc.js';
+import {default as component} from './component.js';
 
 
-    <h3> </h3>
+function filter(selection, state) {
+  // Prevent implicit submission
+  document.getElementById('join-search')
+    .addEventListener('keypress', event => {
+      if (event.keyCode === 13) event.preventDefault();
+    });
+  selection
+    .on('keyup', function () {
+      const match = d => misc.partialMatch(d3form.value(this), d.name);
+      selection.selectAll('li')
+        .style('visibility', d => match(d) ? null : 'hidden')
+        .style('position', d => match(d) ? null : 'absolute');
+    });
+}
 
 
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
+export default {
+  filter
+};
+</code></pre>
+        </article>
+    </section>
 
 
 

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: profile.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: profile.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>
+/** @module profile */
+
+import d3 from 'd3';
+
+import {default as misc} from './common/misc.js';
+import {default as fetcher} from './common/fetcher.js';
+
+import {default as button} from './component/button.js';
+import {default as table} from './component/table.js';
+
+
+function updateChem(compoundID, resources) {
+  d3.select('title').text(compoundID);
+  const query = {
+    workflow: 'search',
+    targets: resources.filter(e => e.domain === 'chemical').map(e => e.id),
+    key: 'compound_id',
+    values: [compoundID]
+  };
+  return fetcher.get(query.workflow, query)
+    .then(fetcher.json)
+    .then(res => {
+      const rcd = res.records[0];
+      d3.select('#compoundid').html(rcd.compound_id);
+      d3.select('#compounddb').html(
+        resources.find(e => e.id === rcd.__source).name);
+      d3.select('#structure').html(rcd.structure);
+      const fields = misc.defaultFieldProperties([
+        {key: 'key'}, {key: 'value'}
+      ]);
+      const records = res.fields
+        .filter(e => !['structure', 'index', 'compound_id'].includes(e.key))
+        .map(e => ({ key: e.name, value: rcd[e.key] }));
+      d3.select('#properties')
+        .call(table.render, null, null, fields, records);
+      return rcd;
+    }, fetcher.error);
+}
+
+
+function updateChemAliases(resources, qrcd) {
+  const query = {
+    workflow: 'exact',
+    targets: resources.filter(e => e.domain === 'chemical').map(e => e.id),
+    queryMol: {
+      format: 'dbid',
+      source: qrcd.__source,
+      value: qrcd.compound_id
+    },
+    params: {ignoreHs: true}
+  };
+  return fetcher.get(query.workflow, query)
+    .then(fetcher.json)
+    .then(res => {
+      const fields = misc.defaultFieldProperties([
+        {key: 'compound_id'}, {key: 'database'}
+      ]);
+      const records = res.records
+        .filter(rcd => rcd.compound_id !== qrcd.compound_id ||
+                rcd.__source !== qrcd.__source)
+        .map(rcd => {
+          return {
+            compound_id: `&lt;a href="profile.html?compound=${rcd.compound_id}" target="_blank">${rcd.compound_id}&lt;/a>`,
+            database: resources.find(e => e.id === rcd.__source).name
+          };
+        });
+      d3.select('#aliases')
+        .call(table.render, fields, records);
+    }, fetcher.error);
+}
+
+
+function updateActivities(compoundID, resources) {
+  // Prevent implicit submission
+  /* TODO: instant search component
+  document.getElementById('search')
+    .addEventListener('keypress', event => {
+      if (event.keyCode === 13) event.preventDefault();
+    });
+  d3.select('#search').on('keyup', function () {
+    const match = obj => Object.values(obj)
+      .some(e => fmt.partialMatch(d3form.value(this), e));
+    d3.select('#results tbody').selectAll('tr')
+      .style('visibility', d => match(d) ? null : 'hidden')
+      .style('position', d => match(d) ? null : 'absolute');
+  });
+  */
+  const query = {
+    workflow: 'profile',
+    compound_id: compoundID,
+    targets: resources.filter(e => e.domain === 'activity').map(e => e.id),
+  };
+  return fetcher.get(query.workflow, query)
+    .then(fetcher.json)
+    .then(res => {
+      const fields= misc.defaultFieldProperties([
+        {key: 'assay_id', name: 'Assay ID', format: 'text'},
+        {key: 'value_type', name: 'Value type', format: 'text'},
+        {key: 'value', name: 'Value', format: 'numeric'}
+      ]);
+      // TODO: use datagrid?
+      d3.select('#results').call(table.render, null, null, fields, res.records);
+    }, fetcher.error);
+}
+
+
+function run() {
+  // Menubar
+  const menubar = d3.select('#menubar');
+  menubar.append('a')
+      .call(button.menuButton, null, 'Control panel', 'outline-secondary')
+      .attr('href', 'control.html')
+      .attr('target', '_blank');
+
+  // Compound row
+  const chemDataRow = d3.select('#contents')
+    .append('div')
+      .classed('row', true);
+  const firstCol = chemDataRow.append('div')
+      .classed('col-sm-4', true);
+  firstCol.append('h5').text('Compound ID');
+  firstCol.append('div')
+      .attr('id', 'compoundid')
+      .classed('mb-2');
+  firstCol.append('h5').text('Database');
+  firstCol.append('div')
+      .attr('id', 'compounddb')
+      .classed('mb-2');
+  firstCol.append('h5').text('Structure');
+  firstCol.append('div')
+      .attr('id', 'structure')
+      .classed('mb-2');
+  const propCol = chemDataRow.append('div')
+      .classed('col-sm-4', true);
+  propCol.append('h5').text('Compound properties');
+  propCol.append('table')
+      .attr('id', 'properties')
+      .style('display', 'inline-block');
+  const aliaseCol = chemDataRow.append('div')
+      .classed('col-sm-4', true);
+  aliaseCol.append('h5').text('Compound structure aliases');
+  aliaseCol.append('table')
+      .attr('id', 'aliases')
+      .style('display', 'inline-block');
+  const compoundID = misc.URLQuery().compound || null;
+
+  // Result row
+  const resultRow = d3.select('#contents')
+    .append('div')
+      .classed('row', true);
+  const results = resultRow.append('div')
+      .classed('col-sm-12', true);
+  results.append('h5').text('Assay results and annotations');
+  results.append('input')
+      .classed('form-control', true)
+      .attr('type', 'text')
+      .attr('placeholder', 'Search')
+      .attr('id', 'search');
+  results.append('table')
+      .attr('id', 'results');
+
+  if (!compoundID) return;
+  // TODO: offline mode flags
+  const localFile = document.location.protocol !== "file:";
+  const offLine = 'onLine' in navigator &amp;&amp; !navigator.onLine;
+  return fetcher.get('schema')
+    .then(fetcher.json)
+    .catch(() => {})
+    .then(schema => {
+      console.info('Off-line mode is disabled for debugging');
+      return Promise.all([
+        updateChem(compoundID, schema.resources)
+          .then(qrcd => updateChemAliases(schema.resources, qrcd)),
+        updateActivities(compoundID, schema.resources)
+      ]);
+    });
+}
+
+
+export default {
+  run
+};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-common_core.html">common/core</a></li><li><a href="module-common_fetcher.html">common/fetcher</a></li><li><a href="module-common_file.html">common/file</a></li><li><a href="module-common_idb.html">common/idb</a></li><li><a href="module-common_image.html">common/image</a></li><li><a href="module-common_KArray.html">common/KArray</a></li><li><a href="module-common_legacySchema.html">common/legacySchema</a></li><li><a href="module-common_mapper.html">common/mapper</a></li><li><a href="module-common_misc.html">common/misc</a></li><li><a href="module-common_scale.html">common/scale</a></li><li><a href="module-common_sw.html">common/sw</a></li><li><a href="module-component_button.html">component/button</a></li><li><a href="module-component_formBox.html">component/formBox</a></li><li><a href="module-component_formBoxGroup.html">component/formBoxGroup</a></li><li><a href="module-component_formListBox.html">component/formListBox</a></li><li><a href="module-component_formRangeBox.html">component/formRangeBox</a></li><li><a href="module-component_modal.html">component/modal</a></li><li><a href="module-component_table.html">component/table</a></li><li><a href="module-control.html">control</a></li><li><a href="module-datagrid.html">datagrid</a></li><li><a href="module-datagrid_component.html">datagrid/component</a></li><li><a href="module-datagrid_datagridApp.html">datagrid/datagridApp</a></li><li><a href="module-datagrid_newDatagrid.html">datagrid/newDatagrid</a></li><li><a href="module-datagrid_rowFilter.html">datagrid/rowFilter</a></li><li><a href="module-datagrid_sort.html">datagrid/sort</a></li><li><a href="module-datagrid_state.html">datagrid/state</a></li><li><a href="module-datagrid_view.html">datagrid/view</a></li><li><a href="module-dialog_community.html">dialog/community</a></li><li><a href="module-dialog_fieldConfig.html">dialog/fieldConfig</a></li><li><a href="module-dialog_fieldFetch.html">dialog/fieldFetch</a></li><li><a href="module-dialog_fieldFile.html">dialog/fieldFile</a></li><li><a href="module-dialog_filter.html">dialog/filter</a></li><li><a href="module-dialog_formGroup.html">dialog/formGroup</a></li><li><a href="module-dialog_networkgen.html">dialog/networkgen</a></li><li><a href="module-dialog_rename.html">dialog/rename</a></li><li><a href="module-dialog_sdf.html">dialog/sdf</a></li><li><a href="module-dialog_search.html">dialog/search</a></li><li><a href="module-dialog_struct.html">dialog/struct</a></li><li><a href="module-network.html">network</a></li><li><a href="module-network_communityDetection.html">network/communityDetection</a></li><li><a href="module-network_component.html">network/component</a></li><li><a href="module-network_controlBox.html">network/controlBox</a></li><li><a href="module-network_force.html">network/force</a></li><li><a href="module-network_interaction.html">network/interaction</a></li><li><a href="module-network_networkApp.html">network/networkApp</a></li><li><a href="module-network_state.html">network/state</a></li><li><a href="module-network_view.html">network/view</a></li><li><a href="module-profile.html">profile</a></li><li><a href="module-testAPI.html">testAPI</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu Feb 22 2018 21:42:17 GMT+0900 (JST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

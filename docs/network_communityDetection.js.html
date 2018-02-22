@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Home</title>
+    <title>JSDoc: Source: network/communityDetection.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,32 +17,59 @@
 
 <div id="main">
 
-    <h1 class="page-title">Home</h1>
+    <h1 class="page-title">Source: network/communityDetection.js</h1>
 
     
 
 
 
     
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>
+/** @module network/communityDetection */
+
+import jLouvain from 'jLouvain';
 
 
-    <h3> </h3>
+export function communityDetection(nodes, edges, option) {
+  // TODO: partition resolution setting
+  // TODO: Error at edges.length 0
+  if (!edges.length) {
+    const community = {};
+    nodes.forEach(e => { community[e] = option.nulliso ? null : e; });
+    return community;
+  }
+  const clusters = {};
+  const community = jLouvain().nodes(nodes).edges(edges)();
+  Object.entries(community).forEach(e => {
+    if (!clusters.hasOwnProperty(e[1])) {
+      clusters[e[1]] = [];
+    }
+    clusters[e[1]].push(e[0]);
+  });
+  // Sort by cluster size
+  Object.entries(clusters)
+    .sort((a, b) => a[1].length &lt; b[1].length)
+    .forEach((cluster, i) => {
+      if (cluster[1].length === 1) {
+        community[cluster[1][0]] = option.nulliso ? null : i;
+      } else {
+        cluster[1].forEach(e => {
+          community[e] = i;
+        });
+      }
+    });
+  return community;
+}
 
 
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
+export default {
+  communityDetection
+};
+</code></pre>
+        </article>
+    </section>
 
 
 

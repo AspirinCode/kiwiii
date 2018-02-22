@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Home</title>
+    <title>JSDoc: Source: common/image.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,32 +17,39 @@
 
 <div id="main">
 
-    <h1 class="page-title">Home</h1>
+    <h1 class="page-title">Source: common/image.js</h1>
 
     
 
 
 
     
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>
+/** @module common/image */
+
+import vega from 'vega';
+
+function showPlot(vegaSpec, selector) {
+  new vega.View(vega.parse(vegaSpec))
+    .initialize(selector)
+    .run();
+}
 
 
-    <h3> </h3>
+function plotThumbnail(vegaSpec) {
+  const view = new vega.View(vega.parse(vegaSpec));
+  return view.toImageURL('png');  // Promise
+}
 
 
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
+export default {
+  showPlot, plotThumbnail
+};
+</code></pre>
+        </article>
+    </section>
 
 
 

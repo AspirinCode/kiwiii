@@ -37,7 +37,7 @@
 /* eslint-disable indent, no-unused-vars, no-multiple-empty-lines, max-nested-callbacks, space-before-function-paren, quotes, comma-spacing */
 'use strict';
 
-var precacheConfig = [["control.html","a0dc3b69124814626b0b61f073abb9f3"],["customMethods.js","1c7f2151dd989f3897f6dd785ac83d1b"],["datatable.html","05df9f6f1e2f832d7630f49838c3301f"],["default.css","af5d5cd4e93340b48b679fa99934d3ca"],["graph.html","456278c2c26c52b944d0441cc5670d56"],["kwcontrol.js","042b2aa79786e34b908abe055a77f874"],["kwdatatable.js","cf50c2f090ca4a9e192c6381bd9d1246"],["kwgraph.js","1cd3414321ea0fa9ca406ba73013e8c4"],["kwprofile.js","d9e43affdda4f0095e89f83f9fa0805c"],["kwreport.js","a63eb6aad7563a5822d3a584ed187c3e"],["main.js","306fa3692302e6d6af9f13d7d8d71c9f"],["profile.html","12c72982a583594f9e7b4b4b25cc82df"],["report.html","79623795bfbf2e927792aa717fa8c13e"],["testAPI.html","08fb8610a789b405a06a2e76d0ab1a9d"],["testAPI.js","d1824c9f21bf7198ef30e2b6cc2058d3"]];
+var precacheConfig = [["control.html","8aa5f5a7542a680e76c78db38b40ca0f"],["datagrid.html","35278ff6e8ffe5aef523b485f74a4116"],["default.css","af19c8172a1da9fea17ed0e50f584be7"],["kwcontrol.js","5ca0c2911e37c18b79feafa478a7ca9e"],["kwdatagrid.js","7c3c391e2bd76a9f259b7f160b80d83f"],["kwnetwork.js","834ccc455ecfc2eb5a1e74538ace9271"],["kwprofile.js","479b831704d30dfc06d784700e3bf0ae"],["network.html","2320d4de8a4d51c08fbce30a7bfa073b"],["profile.html","d7adabf8bdd18d462bcee28f7671965e"]];
 var cacheName = 'sw-precache-v3--' + (self.registration ? self.registration.scope : '');
 
 

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Home</title>
+    <title>JSDoc: Source: dialog/search.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,32 +17,57 @@
 
 <div id="main">
 
-    <h1 class="page-title">Home</h1>
+    <h1 class="page-title">Source: dialog/search.js</h1>
 
     
 
 
 
     
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>
+/** @module dialog/search */
 
 
-    <h3> </h3>
+import {default as button} from '../component/button.js';
+import {default as box} from '../component/formBox.js';
+import {default as modal} from '../component/modal.js';
 
 
+const id = 'search-dialog';
+const title = 'Search by compound ID';
 
 
+function menuLink(selection) {
+  selection.call(button.dropdownMenuModal, 'search', title, id);
+}
 
 
+function body(selection, placeholder) {
+  selection.call(modal.submitDialog, id, title)
+    .select('.modal-body').append('div')
+      .classed('ids', true)
+      .call(box.textareaBox, 'search-query', 'Query', 20, placeholder, '');
+}
 
 
+function query(selection, targets) {
+  return {
+    workflow: 'search',
+    targets: targets,
+    key: 'compound_id',
+    values: box.textareaBoxLines(selection.select('.ids'))
+  };
+}
 
 
-    
-
-
-
-
-
+export default {
+  menuLink, body, query
+};
+</code></pre>
+        </article>
+    </section>
 
 
 
