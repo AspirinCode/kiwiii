@@ -29,10 +29,11 @@
             <pre class="prettyprint source linenums"><code>
 /** @module datagrid/state */
 
+import _ from 'lodash';
+
 import {default as legacy} from '../common/legacySchema.js';
 import {default as mapper} from '../common/mapper.js';
 import {default as misc} from '../common/misc.js';
-import KArray from '../common/KArray.js';
 
 
 export default class DatagridState {
@@ -40,7 +41,16 @@ export default class DatagridState {
 
     // Import from legacy format data
     this.data = legacy.convertTable(data);
-    this.fields = null;  // Working copy (set by setFields method)
+
+    this.fields = null;
+    this.visibleFields = null;
+    this.sortedRecords = null;
+    this.filteredRecords = null;
+
+    // Snapshot
+    const snp = this.data.snapshot || {sortOrder: [], filterText: null};
+    this.sortOrder = snp.sortOrder || [];
+    this.filterText = snp.filterText || null;
 
     this.defaultColumnWidth = {
       numeric: 120,
@@ -56,52 +66,104 @@ export default class DatagridState {
 
     this.keyFunc = d => d.index;
 
-    this.visibleFields = null;
+    // Size
     this.rowHeight = null;
     this.contentWidth = null;
     this.bodyHeight = null;
 
-    this.vieportTop = null;
-    this.previousVieportTop = null;
-    this.vieportBottom = null;
-
+    // Viewport
+    this.viewportHeight = null;
     this.numViewportRows = null;
     this.previousNumViewportRows = null;
+    this.viewportTop = null;
+    this.previousVieportTop = null;
+    this.viewportBottom = null;
 
-    this.updateHeaderNotifier = null;
+    // Event notifier
+    this.updateContentsNotifier = null;
+    this.updateFilterNotifier = null;
 
     // Initialize
-    this.setFields(this.data.fields);
+    this.applyData();
+  }
+
+  setViewportSize(height) {
+    this.viewportHeight = height;
+    this.previousNumViewportRows = this.numViewportRows;
+    this.numViewportRows = Math.ceil(this.viewportHeight / this.rowHeight) + 1;
   }
 
   setScrollPosition(position) {
     this.previousVieportTop = this.viewportTop;
     this.viewportTop = position;
     this.viewportBottom = Math.min(
-      this.viewportTop + this.numViewportRows, this.data.records.length);
+      this.viewportTop + this.numViewportRows, this.filteredRecords.length);
   }
 
-  recordsToShow() {
-    return this.data.records.slice(this.viewportTop, this.viewportBottom);
+  setSortOrder(key, order) {
+    const ki  = this.sortOrder.findIndex(e => e.key);
+    const obj = {key: key, order: order};
+    if (ki !== -1) this.sortOrder.splice(ki, 1);
+    this.sortOrder.splice(0, 0, obj);
+    this.applyOrder(key, order);
   }
 
-  setFields(fields) {
-    this.fields = fields.map(e => {
-      e.width = this.defaultColumnWidth[misc.sortType(e.format)];
-      e.height = this.defaultColumnHeight[misc.sortType(e.format)];
-      return e;
+  setFilterText(text) {
+    this.filterText = text;
+    this.applyFilter();
+  }
+
+  joinFields(mapping) {
+    mapper.apply(this.data, mapping);
+    this.applyData();
+  }
+
+  applyData() {
+    this.fields = this.data.fields.map(e => {
+      const field = {
+        width: this.defaultColumnWidth[misc.sortType(e.format)],
+        height: this.defaultColumnHeight[misc.sortType(e.format)]
+      };
+      return Object.assign(field, e);
     });
     this.visibleFields = this.fields.filter(e => e.visible);
     this.rowHeight = this.visibleFields
       .reduce((a, b) => a.height > b.height ? a : b).height;
     this.contentWidth = this.visibleFields
       .reduce((a, b) => ({width: a.width + b.width})).width + this.scrollBarSpace;
-    this.bodyHeight = this.data.records.length * this.rowHeight;
+    this.applyOrder();
   }
 
-  joinFields(mapping) {
-    mapper.apply(this.data, mapping);
-    this.setFields(this.data.fields);
+  applyOrder(key, order) {
+    if (key) {
+      this.sortedRecords = _.orderBy(this.data.records.slice(), [key], [order]);
+    } else {
+      const keys = this.sortOrder.map(e => e.key);
+      const orders = this.sortOrder.map(e => e.order);
+      if (keys) {
+        this.sortedRecords = _.orderBy(this.data.records.slice(), keys, orders);
+      }
+    }
+    this.applyFilter();
+  }
+
+  applyFilter() {
+    if (this.filterText === null) {
+      this.filteredRecords = this.sortedRecords.slice();
+    } else {
+      const fields = this.visibleFields
+        .filter(e => misc.sortType(e.format) !== 'none')
+        .map(e => e.key);
+      this.filteredRecords = this.sortedRecords.filter(row => {
+        return fields.some(f => misc.partialMatch(this.filterText, row[f]));
+      });
+    }
+    this.bodyHeight = this.filteredRecords.length * this.rowHeight;
+    this.setScrollPosition(0);
+  }
+
+  recordsToShow() {
+    return this.filteredRecords.slice(this.viewportTop, this.viewportBottom);
   }
 
   export() {
@@ -120,13 +182,13 @@ export default class DatagridState {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-common_core.html">common/core</a></li><li><a href="module-common_fetcher.html">common/fetcher</a></li><li><a href="module-common_file.html">common/file</a></li><li><a href="module-common_idb.html">common/idb</a></li><li><a href="module-common_image.html">common/image</a></li><li><a href="module-common_KArray.html">common/KArray</a></li><li><a href="module-common_legacySchema.html">common/legacySchema</a></li><li><a href="module-common_mapper.html">common/mapper</a></li><li><a href="module-common_misc.html">common/misc</a></li><li><a href="module-common_scale.html">common/scale</a></li><li><a href="module-common_sw.html">common/sw</a></li><li><a href="module-component_button.html">component/button</a></li><li><a href="module-component_formBox.html">component/formBox</a></li><li><a href="module-component_formBoxGroup.html">component/formBoxGroup</a></li><li><a href="module-component_formListBox.html">component/formListBox</a></li><li><a href="module-component_formRangeBox.html">component/formRangeBox</a></li><li><a href="module-component_modal.html">component/modal</a></li><li><a href="module-component_table.html">component/table</a></li><li><a href="module-control.html">control</a></li><li><a href="module-datagrid.html">datagrid</a></li><li><a href="module-datagrid_component.html">datagrid/component</a></li><li><a href="module-datagrid_datagridApp.html">datagrid/datagridApp</a></li><li><a href="module-datagrid_newDatagrid.html">datagrid/newDatagrid</a></li><li><a href="module-datagrid_rowFilter.html">datagrid/rowFilter</a></li><li><a href="module-datagrid_sort.html">datagrid/sort</a></li><li><a href="module-datagrid_state.html">datagrid/state</a></li><li><a href="module-datagrid_view.html">datagrid/view</a></li><li><a href="module-dialog_community.html">dialog/community</a></li><li><a href="module-dialog_fieldConfig.html">dialog/fieldConfig</a></li><li><a href="module-dialog_fieldFetch.html">dialog/fieldFetch</a></li><li><a href="module-dialog_fieldFile.html">dialog/fieldFile</a></li><li><a href="module-dialog_filter.html">dialog/filter</a></li><li><a href="module-dialog_formGroup.html">dialog/formGroup</a></li><li><a href="module-dialog_networkgen.html">dialog/networkgen</a></li><li><a href="module-dialog_rename.html">dialog/rename</a></li><li><a href="module-dialog_sdf.html">dialog/sdf</a></li><li><a href="module-dialog_search.html">dialog/search</a></li><li><a href="module-dialog_struct.html">dialog/struct</a></li><li><a href="module-network.html">network</a></li><li><a href="module-network_communityDetection.html">network/communityDetection</a></li><li><a href="module-network_component.html">network/component</a></li><li><a href="module-network_controlBox.html">network/controlBox</a></li><li><a href="module-network_force.html">network/force</a></li><li><a href="module-network_interaction.html">network/interaction</a></li><li><a href="module-network_networkApp.html">network/networkApp</a></li><li><a href="module-network_state.html">network/state</a></li><li><a href="module-network_view.html">network/view</a></li><li><a href="module-profile.html">profile</a></li><li><a href="module-testAPI.html">testAPI</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-common_core.html">common/core</a></li><li><a href="module-common_fetcher.html">common/fetcher</a></li><li><a href="module-common_file.html">common/file</a></li><li><a href="module-common_idb.html">common/idb</a></li><li><a href="module-common_image.html">common/image</a></li><li><a href="module-common_legacySchema.html">common/legacySchema</a></li><li><a href="module-common_mapper.html">common/mapper</a></li><li><a href="module-common_misc.html">common/misc</a></li><li><a href="module-common_scale.html">common/scale</a></li><li><a href="module-common_sw.html">common/sw</a></li><li><a href="module-component_button.html">component/button</a></li><li><a href="module-component_formBox.html">component/formBox</a></li><li><a href="module-component_formBoxGroup.html">component/formBoxGroup</a></li><li><a href="module-component_formListBox.html">component/formListBox</a></li><li><a href="module-component_formRangeBox.html">component/formRangeBox</a></li><li><a href="module-component_modal.html">component/modal</a></li><li><a href="module-component_table.html">component/table</a></li><li><a href="module-control.html">control</a></li><li><a href="module-datagrid.html">datagrid</a></li><li><a href="module-datagrid_component.html">datagrid/component</a></li><li><a href="module-datagrid_datagridApp.html">datagrid/datagridApp</a></li><li><a href="module-datagrid_newDatagrid.html">datagrid/newDatagrid</a></li><li><a href="module-datagrid_rowFilter.html">datagrid/rowFilter</a></li><li><a href="module-datagrid_sort.html">datagrid/sort</a></li><li><a href="module-datagrid_state.html">datagrid/state</a></li><li><a href="module-datagrid_view.html">datagrid/view</a></li><li><a href="module-dialog_community.html">dialog/community</a></li><li><a href="module-dialog_fieldConfig.html">dialog/fieldConfig</a></li><li><a href="module-dialog_fieldFetch.html">dialog/fieldFetch</a></li><li><a href="module-dialog_fieldFile.html">dialog/fieldFile</a></li><li><a href="module-dialog_filter.html">dialog/filter</a></li><li><a href="module-dialog_formGroup.html">dialog/formGroup</a></li><li><a href="module-dialog_networkgen.html">dialog/networkgen</a></li><li><a href="module-dialog_rename.html">dialog/rename</a></li><li><a href="module-dialog_sdf.html">dialog/sdf</a></li><li><a href="module-dialog_search.html">dialog/search</a></li><li><a href="module-dialog_struct.html">dialog/struct</a></li><li><a href="module-network.html">network</a></li><li><a href="module-network_communityDetection.html">network/communityDetection</a></li><li><a href="module-network_component.html">network/component</a></li><li><a href="module-network_controlBox.html">network/controlBox</a></li><li><a href="module-network_force.html">network/force</a></li><li><a href="module-network_interaction.html">network/interaction</a></li><li><a href="module-network_networkApp.html">network/networkApp</a></li><li><a href="module-network_state.html">network/state</a></li><li><a href="module-network_view.html">network/view</a></li><li><a href="module-profile.html">profile</a></li><li><a href="module-testAPI.html">testAPI</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu Feb 22 2018 21:42:17 GMT+0900 (JST)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Sun Mar 11 2018 13:58:35 GMT+0900 (JST)
 </footer>
 
 <script> prettyPrint(); </script>
