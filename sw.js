@@ -37,7 +37,7 @@
 /* eslint-disable indent, no-unused-vars, no-multiple-empty-lines, max-nested-callbacks, space-before-function-paren, quotes, comma-spacing */
 'use strict';
 
-var precacheConfig = [["control.html","ab47b9e2be2f540a586fd6693687adfa"],["datagrid.html","88af8d72585497f69fad2277f3b87aa7"],["default.css","af19c8172a1da9fea17ed0e50f584be7"],["kwcontrol.js","8d078f9d02af04fa3f92da56aca1db2b"],["kwdatagrid.js","01dd196686942863cfcaf7e2b3fedbad"],["kwnetwork.js","d90e9631294db55ac4d8831c24b8e035"],["kwprofile.js","caf9e8456dce53147765c9a3730e236c"],["main.js","09531580e4ef97c72c070aaf3df67569"],["network.html","5a0b75c3d2ac8849b4e0dee604c851ac"],["profile.html","a240304674992b46038cb2cf961ca1f1"],["testAPI.html","3694a123721da1af3900909f28a88682"],["testAPI.js","176b9728d961c71f3ee6ef2c6f163ee5"]];
+var precacheConfig = [["control.html","7ef3559f57e82b0d07d337d642a3d3c4"],["datagrid.html","59d9216e621d541e7a02cbd002f1b10d"],["datagridtest.html","f31f3fae24cac1818485f3ed9645c6a0"],["default.css","af19c8172a1da9fea17ed0e50f584be7"],["kwcontrol.js","1a0e866ab3fae9e9043774a124ce9023"],["kwdatagrid.js","a1e71c7ac0e09c11d011ecf14db1fa65"],["kwnetwork.js","286dbbd4dabef7b2f7c12376a5330c2f"],["kwprofile.js","904ed049522cb8c1e4df385aae53e9a6"],["main.js","8f8f4f0f5de0cb48028ac0d9ad4be501"],["network.html","08e5a62794f0fc184eac9772aca46f61"],["profile.html","9b0dd4e0d2a580c30b6d29f07b35a999"],["testAPI.html","682f1c8e73fe9808f6c441e8992cc744"],["testAPI.js","9a92d7d84aecaffe8ac254fb9b02fe15"]];
 var cacheName = 'sw-precache-v3--' + (self.registration ? self.registration.scope : '');
 
 
