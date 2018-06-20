@@ -37,7 +37,7 @@
 /* eslint-disable indent, no-unused-vars, no-multiple-empty-lines, max-nested-callbacks, space-before-function-paren, quotes, comma-spacing */
 'use strict';
 
-var precacheConfig = [["dashboard.html","917e27ce1e68e8cdd61ddeddbf342fde"],["dashboardApp.js","063b8a5e3c11aab2523823adea8c7e23"],["datagrid.html","c18c7c87cef019857fb23e52446c7aef"],["datagridApp.js","046827e8ac251134e3800ca4624f6a01"],["default.css","af19c8172a1da9fea17ed0e50f584be7"],["main.js","e849fccae1c08f55fe71094b29ddf9d2"],["network.html","11ccf652ecce04a179982564d628607a"],["networkApp.js","0b9972e7c855467b84b69e05e289ab9d"],["profile.html","86104c0eabe223ae5d6bde69aa88703c"],["profileApp.js","6f1c70116f41ed46ffb55994a17146da"],["testAPI.html","2c034689b69f050c443fa0b1ec764d5f"],["testAPI.js","9b5f47778377d20fdd67a3757d592b9b"]];
+var precacheConfig = [["assets/icon/addassay.svg","de2ef9699a6c749ea3f0f00ec9ff7713"],["assets/icon/addcheckbox.svg","3b1a25b332c48ef926dca933dbe0750c"],["assets/icon/addfile.svg","15f160f6a4443fd562f9dbed1b427949"],["assets/icon/db-gray.svg","9a0407bc095818389f4b556248f5afc5"],["assets/icon/delete-gray.svg","adb9df8443119aaae4983e50bc059970"],["assets/icon/edittable.svg","f5576318ae59ffeaf193d3b190685cd0"],["assets/icon/edittext.svg","578bd109100868e3d74edcd5f16a7779"],["assets/icon/export.svg","1801bbba73bc394115d6ec5048ea8e7a"],["assets/icon/exportexcel.svg","84122dcad445af22bd4a823631b90f3a"],["assets/icon/import.svg","93c2f892c9f2b7f4609ea8fa2044cbc1"],["assets/icon/importsdf.svg","c592c6d66e2ab505ad7f251e115e2ab9"],["assets/icon/network-white.svg","d0e72b62a66d25a159504f94c7893630"],["assets/icon/network.svg","4e2f0837a55b22c8f2e3ac1238b98f47"],["assets/icon/open-white.svg","be0ede01ccaa4b8d83c1e77be73619c3"],["assets/icon/painting.svg","08cfd247411233fab218be4a80bec8f9"],["assets/icon/plus-white.svg","45ee903c98e84197d2f93c5bfceaec12"],["assets/icon/refresh-gray.svg","4945d92f728c8faf1e517aa79e507126"],["assets/icon/save.svg","31c27072758e53551af18c14096c0ca7"],["assets/icon/searchchem.svg","6d7f4eda091422b1a2fcfb9896d207f3"],["assets/icon/searchprop.svg","3b2ccec9972e6680fc4bed2ea4577cec"],["assets/icon/searchtext.svg","4f9773dbe7e496dd3bdf0116aea9663d"],["assets/icon/status-gray.svg","736f06b06fe9252edeef6f3a207fcaeb"],["assets/icon/table-gray.svg","6e6e164a85ddebcd1f257151b4ac2b8b"],["assets/icon/table-white.svg","04c63ad9025d126492ffde16a00dd387"],["assets/loading1.gif","4e242a313254cdc66f286f6465d7e3f1"],["assets/loading2.gif","2ea6e8a8a5e21ff88b38d53e3d437793"],["assets/loading3.gif","083f5a8fe8eb8ccbabdb486027d1ba76"],["dashboard.html","917e27ce1e68e8cdd61ddeddbf342fde"],["dashboardApp.js","533b320f4f879cfa340926c2e2384196"],["datagrid.html","c18c7c87cef019857fb23e52446c7aef"],["datagridApp.js","0ffc86ad9632d3b61f1fab4e8f019941"],["default.css","af19c8172a1da9fea17ed0e50f584be7"],["main.js","e849fccae1c08f55fe71094b29ddf9d2"],["network.html","11ccf652ecce04a179982564d628607a"],["networkApp.js","f1411d3777f04b9d08313c24dc67871f"],["profile.html","86104c0eabe223ae5d6bde69aa88703c"],["profileApp.js","6f1c70116f41ed46ffb55994a17146da"],["testAPI.html","2c034689b69f050c443fa0b1ec764d5f"],["testAPI.js","9b5f47778377d20fdd67a3757d592b9b"]];
 var cacheName = 'sw-precache-v3--' + (self.registration ? self.registration.scope : '');
 
 
@@ -285,11 +285,13 @@ self.addEventListener('fetch', function(event) {
 
 // Runtime cache configuration, using the sw-toolbox library.
 
-toolbox.router.get(/^https:\/\/maxcdn\.bootstrapcdn\.com/, toolbox.cacheFirst, {});
-toolbox.router.get(/^https:\/\/code\.jquery\.com/, toolbox.cacheFirst, {});
+toolbox.router.get(/^https:\/\/cdn\.jsdelivr\.net/, toolbox.cacheFirst, {});
+toolbox.router.get(/^https:\/\/cdn\.rawgit\.com/, toolbox.cacheFirst, {});
 toolbox.router.get(/^https:\/\/cdnjs\.cloudflare\.com/, toolbox.cacheFirst, {});
-toolbox.router.get(/^https:\/\/unpkg\.com/, toolbox.cacheFirst, {});
+toolbox.router.get(/^https:\/\/code\.jquery\.com/, toolbox.cacheFirst, {});
 toolbox.router.get(/^https:\/\/d3js\.org/, toolbox.cacheFirst, {});
+toolbox.router.get(/^https:\/\/maxcdn\.bootstrapcdn\.com/, toolbox.cacheFirst, {});
+toolbox.router.get(/^https:\/\/unpkg\.com/, toolbox.cacheFirst, {});
 toolbox.router.get(/^https:\/\/vega\.github\.io/, toolbox.cacheFirst, {});
 
 
