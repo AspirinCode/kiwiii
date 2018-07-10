@@ -6,6 +6,8 @@ import d3 from 'd3';
 import Collection from '../common/collection.js';
 import {default as idb} from '../common/idb.js';
 
+import {default as contour} from './similarityContour.js';
+
 
 export default class NetworkState {
   constructor(view, nodes, edges) {
@@ -152,6 +154,15 @@ export default class NetworkState {
       this.ns[e.source].adjacency.push([e.target, i]);
       this.ns[e.target].adjacency.push([e.source, i]);
     });
+
+    // Generate contour
+    const cont = contour.computeSim(this.ns, this.es);
+    this.elevations = cont.elevations;
+    this.cweights = cont.cweights;
+    this.es.forEach((e, i) => {
+      e.weight = this.cweights[i];
+    });
+    console.log(this.es)
 
     // Drawing
     this.forceField = {
